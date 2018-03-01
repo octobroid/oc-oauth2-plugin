@@ -1,0 +1,10 @@
+{
+    "name": "octobro/api",
+    "description": "OAuth 2 API Plugin for OctoberCMS.",
+    "type": "october-plugin",
+    "keywords": ["october", "api"],
+    "require": {
+        "php": ">=7.0.0",
+        "league/oauth2-server": "4.1.*"
+    }
+}
