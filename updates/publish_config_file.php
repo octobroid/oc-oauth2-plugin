@@ -15,6 +15,8 @@ class PublishConfigFile extends Migration
      */
     public function up()
     {
+        if (file_exists(config_path('oauth2.php'))) return;
+
         copy(plugins_path('octobro/oauth2/config/oauth2.php'), config_path('oauth2.php'));
     }
 
