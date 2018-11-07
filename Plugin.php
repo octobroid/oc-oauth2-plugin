@@ -42,6 +42,8 @@ class Plugin extends PluginBase
                 if ($userId) {
                     $user = User::find($userId);
 
+                    if (!$user) return null;
+
                     Auth::login($user);
 
                     return $user;
