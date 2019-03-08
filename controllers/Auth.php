@@ -6,6 +6,7 @@ use Exception;
 use Authorizer;
 use Auth as AuthBase;
 use ValidationException;
+use Event;
 use Octobro\API\Classes\ApiController;
 
 class Auth extends ApiController
@@ -23,38 +24,42 @@ class Auth extends ApiController
     {
         try {
 
-            Db::beginTransaction();
-            /*
-             * Validate input
-             */
-            $data = $this->data;
+           Db::beginTransaction();
+           /*
+            * Validate input
+            */
+           $data = $this->data;
 
-            if (!array_key_exists('password_confirmation', $data)) {
-                $data['password_confirmation'] = post('password');
-            }
+           if (!array_key_exists('password_confirmation', $data)) {
+               $data['password_confirmation'] = post('password');
+           }
 
-            $rules = [
-                'name'     => 'required',
-                'email'    => 'required|email|between:6,255',
-                'password' => 'required|between:4,255',
-            ];
+           $rules = [
+               'name'     => 'required',
+               'email'    => 'required|email|between:6,255',
+               'password' => 'required|between:4,255',
+           ];
 
-            $validation = Validator::make($data, $rules);
-            if ($validation->fails()) {
-                throw new ValidationException($validation);
-            }
+           Event::fire('octobro.oauth2.beforeRegister', [$data]);
 
-            // Register, no need activation
-            $user = AuthBase::register($data, true);
+           $validation = Validator::make($data, $rules);
+           if ($validation->fails()) {
+               throw new ValidationException($validation);
+           }
 
-            Db::commit();
+           // Register, no need activation
+           $user = AuthBase::register($data, true);
 
-            return $this->respondWithArray(Authorizer::issueAccessToken());
+           Event::fire('octobro.oauth2.register', [$user, $data]);
 
-        } catch (Exception $e) {
-            Db::rollBack();
-            return $this->errorWrongArgs($e->getMessage());
-        }
+           Db::commit();
+
+           return $this->respondWithArray(Authorizer::issueAccessToken());
+
+       } catch (Exception $e) {
+           Db::rollBack();
+           return $this->errorWrongArgs($e->getMessage());
+       }
     }
 
     public function forgot()
