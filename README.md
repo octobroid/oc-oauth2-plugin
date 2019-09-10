@@ -1,10 +1,10 @@
-# OAuth2 Plugin for OctoberCMS
+# OAuth 2.0 Plugin for OctoberCMS
 
-It's a plugin for OctoberCMS for you that want to create an OAuth2 API for your RainLab.User plugin in easy way.
+It's a plugin for OctoberCMS for you that want to create an OAuth 2 API for your RainLab.User plugin in easy way.
 
 ## Features
 
-- [oAuth 2.0](https://oauth.net/2/) server ready
+- [OAuth 2.0](https://oauth.net/2/) server ready
 - [RainLab.User](http://octobercms.com/plugin/rainlab-user) plugin integration
 
 ## Installation
