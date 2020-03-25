@@ -9,6 +9,11 @@ class Me extends ApiController
 {
     public function show()
     {
+        /**
+         * Extensibility
+         */
+        Event::fire('octobro.oauth2.beforeShow', [$this->getUser(), $this->data]);
+        
         return $this->respondWithItem($this->getUser(), new UserTransformer);
     }
 
