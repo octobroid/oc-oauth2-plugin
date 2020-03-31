@@ -64,6 +64,44 @@ class Auth extends ApiController
 
     public function forgot()
     {
-    }
+        /*
+        * Validate input
+        */
+        $data = $this->data;
 
+        $rules = [
+            'email' => 'required|email|between:6,255'
+        ];
+
+        $validation = Validator::make($data, $rules);
+        if ($validation->fails()) {
+            throw new ValidationException($validation);
+        }
+
+        $email = array_get($data, 'email');
+
+        $user = \RainLab\User\Models\User::findByEmail($email);
+
+        if (!$user || $user->is_guest) {
+            throw new \ApplicationException(\Lang::get('rainlab.user::lang.account.invalid_user'));
+        }
+
+        $code = implode('!', [$user->id, $user->getResetPasswordCode()]);
+
+        $paramUrl = sprintf('?%s', http_build_query([
+            'code' => $code
+        ]));
+
+        $link = \Cms\Classes\Page::url('mobile-view/reset-password') . $paramUrl;
+
+        $data = [
+            'name' => $user->name,
+            'link' => $link,
+            'code' => $code
+        ];
+
+        \Mail::send('rainlab.user::mail.restore', $data, function($message) use ($user) {
+            $message->to($user->email, $user->full_name);
+        });
+    }
 }
