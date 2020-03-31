@@ -40,6 +40,9 @@ class Auth extends ApiController
                'password' => 'required|between:4,255',
            ];
 
+           /**
+            * Extensibility
+            */
            Event::fire('octobro.oauth2.beforeRegister', [$data]);
 
            $validation = Validator::make($data, $rules);
@@ -50,6 +53,9 @@ class Auth extends ApiController
            // Register, no need activation
            $user = AuthBase::register($data, true);
 
+           /**
+            * Extensibility
+            */
            Event::fire('octobro.oauth2.register', [$user, $data]);
 
            Db::commit();
