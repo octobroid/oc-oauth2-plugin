@@ -109,5 +109,12 @@ class Auth extends ApiController
         \Mail::send('rainlab.user::mail.restore', $data, function($message) use ($user) {
             $message->to($user->email, $user->full_name);
         });
+
+        return $this->respondWithItem($data, function(){
+            return [
+                'code' => '200',
+                'message' => 'Success, Please proceed on your e-mail',
+            ];
+        });
     }
 }
