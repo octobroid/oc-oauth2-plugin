@@ -2,6 +2,8 @@
 
 use Closure;
 use League\OAuth2\Server\Exception\InvalidScopeException;
+use League\OAuth2\Server\Exception\AccessDeniedException;
+use Octobro\API\Classes\ApiController;
 use Octobro\OAuth2\Classes\Authorizer;
 
 /**
@@ -56,7 +58,14 @@ class OAuthMiddleware
 
         $this->authorizer->setRequest($request);
 
-        $this->authorizer->validateAccessToken($this->httpHeadersOnly);
+        try {
+            $this->authorizer->validateAccessToken($this->httpHeadersOnly);
+        }
+        catch (AccessDeniedException $e) {
+            $controller = new ApiController(new \League\Fractal\Manager);
+            return $controller->errorUnauthorized($e->getMessage());
+        }
+
         $this->validateScopes($scopes);
 
         return $next($request);
