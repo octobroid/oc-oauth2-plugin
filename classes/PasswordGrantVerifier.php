@@ -17,21 +17,52 @@ class PasswordGrantVerifier
                 return $user->id;
             }
         } catch (AuthException $th) {
-            throw new AuthException($this->getInvalidCredentialMessage() ?: $th->getMessage());
+            throw new AuthException($this->getInvalidCredentialMessage($th->getMessage()));
         }
 
         return false;
     }
 
-    public function getInvalidCredentialMessage()
+    public function getInvalidCredentialMessage($throw_message)
     {
-        $code_lang = 'octobro.oauth2::lang.auth.invalid_credential';
-        $message   = Lang::get($code_lang);
+        if (strrpos($throw_message,'hashed credential') !== false) {
+            $code_lang = 'octobro.oauth2::lang.auth.invalid_credential';
+            $message   = Lang::get($code_lang);
 
-        if($message == $code_lang){
-            return null;
+            if($message == $code_lang){
+                return $throw_message;
+            }
+
+            return $message;
+        } elseif (strrpos($throw_message,'user was not found') !== false) {
+            $code_lang = 'octobro.oauth2::lang.auth.not_found';
+            $message   = Lang::get($code_lang);
+
+            if($message == $code_lang){
+                return $throw_message;
+            }
+
+            return $message;
+        } elseif (strrpos($throw_message,'suspended') !== false) {
+            $code_lang = 'octobro.oauth2::lang.auth.suspended';
+            $message   = Lang::get($code_lang);
+
+            if($message == $code_lang){
+                return $throw_message;
+            }
+
+            return $message;
+        } elseif (strrpos($throw_message,'not activated') !== false) {
+            $code_lang = 'octobro.oauth2::lang.auth.inactive';
+            $message   = Lang::get($code_lang);
+
+            if($message == $code_lang){
+                return $throw_message;
+            }
+
+            return $message;
+        } else {
+            return $message;
         }
-
-        return $message;
     }
 }
