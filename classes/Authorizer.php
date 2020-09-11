@@ -1,6 +1,5 @@
 <?php namespace Octobro\OAuth2\Classes;
 
-use Cache, Str;
 use League\OAuth2\Server\AuthorizationServer as Issuer;
 use League\OAuth2\Server\Exception\AccessDeniedException;
 use League\OAuth2\Server\ResourceServer as Checker;
@@ -88,15 +87,8 @@ class Authorizer
      */
     public function getAccessToken()
     {
-        $cache_name = Str::slug(request()->header('Authorization'));
-
-        if(!Cache::has($cache_name)){
-            $accessToken = $this->getChecker()->getAccessToken();
-            Cache::put($cache_name, $accessToken, 720);
-        }
-
-        $accessToken = Cache::get($cache_name);
-
+        $accessToken = $this->getChecker()->getAccessToken();
+            
         if (is_null($accessToken)) {
             throw new NoActiveAccessTokenException('Tried to access session data without an active access token');
         }
