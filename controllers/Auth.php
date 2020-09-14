@@ -14,6 +14,11 @@ class Auth extends ApiController
     public function accessToken()
     {
         try {
+            /**
+            * Extensibility
+            */
+            Event::fire('octobro.oauth2.beforeAccessToken', [$this->data]);
+
             return $this->respondWithArray((Authorizer::issueAccessToken()));
         } catch (Exception $e) {
             return $this->errorWrongArgs($e->getMessage());
