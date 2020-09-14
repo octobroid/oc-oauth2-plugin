@@ -17,7 +17,9 @@ class Auth extends ApiController
             /**
             * Extensibility
             */
-            Event::fire('octobro.oauth2.beforeAccessToken', [$this->data]);
+            Event::fire('octobro.oauth2.beforeAccessToken', [
+                'data' => $this->data
+            ]);
 
             return $this->respondWithArray((Authorizer::issueAccessToken()));
         } catch (Exception $e) {
