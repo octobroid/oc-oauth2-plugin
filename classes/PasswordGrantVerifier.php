@@ -62,7 +62,7 @@ class PasswordGrantVerifier
 
             return $message;
         } else {
-            return $message;
+            return $throw_message;
         }
     }
 }
