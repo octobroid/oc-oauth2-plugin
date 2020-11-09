@@ -7,6 +7,7 @@ use Authorizer;
 use Auth as AuthBase;
 use ValidationException;
 use Event;
+use Mail;
 use Octobro\API\Classes\ApiController;
 
 class Auth extends ApiController
@@ -93,35 +94,40 @@ class Auth extends ApiController
 
         $email = array_get($data, 'email');
 
-        $user = \RainLab\User\Models\User::findByEmail($email);
+        try {
+            $user = \RainLab\User\Models\User::findByEmail($email);
 
-        if (!$user || $user->is_guest) {
-            throw new \ApplicationException(\Lang::get('rainlab.user::lang.account.invalid_user'));
+            if (!$user || $user->is_guest) {
+                throw new \ApplicationException(\Lang::get('rainlab.user::lang.account.invalid_user'));
+            }
+
+            $code = implode('!', [$user->id, $user->getResetPasswordCode()]);
+
+            $paramUrl = sprintf('?%s', http_build_query([
+                'code' => $code
+            ]));
+
+            $link = \Cms\Classes\Page::url('mobile-view/reset-password') . $paramUrl;
+
+            $mail_data = [
+                'name' => $user->name,
+                'link' => $link,
+                'code' => $code
+            ];
+
+            Mail::send('rainlab.user::mail.restore', $mail_data, function($message) use ($user) {
+                $message->to($user->email, $user->full_name);
+            });
+        } catch (\ApplicationException $th) {
+            
         }
-
-        $code = implode('!', [$user->id, $user->getResetPasswordCode()]);
-
-        $paramUrl = sprintf('?%s', http_build_query([
-            'code' => $code
-        ]));
-
-        $link = \Cms\Classes\Page::url('mobile-view/reset-password') . $paramUrl;
-
-        $data = [
-            'name' => $user->name,
-            'link' => $link,
-            'code' => $code
-        ];
-
-        \Mail::send('rainlab.user::mail.restore', $data, function($message) use ($user) {
-            $message->to($user->email, $user->full_name);
-        });
-
+        
         return $this->respondWithItem($data, function(){
             return [
                 'code' => '200',
                 'message' => 'Success, Please proceed on your e-mail',
             ];
         });
+        
     }
 }
