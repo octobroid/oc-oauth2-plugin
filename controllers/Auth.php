@@ -115,7 +115,7 @@ class Auth extends ApiController
                 'code' => $code
             ];
 
-            Mail::send('rainlab.user::mail.restore', $mail_data, function($message) use ($user) {
+            Mail::queue('rainlab.user::mail.restore', $mail_data, function($message) use ($user) {
                 $message->to($user->email, $user->full_name);
             });
         } catch (\ApplicationException $th) {
@@ -125,7 +125,7 @@ class Auth extends ApiController
         return $this->respondWithItem($data, function(){
             return [
                 'code' => '200',
-                'message' => 'Success, Please proceed on your e-mail',
+                'message' => \Lang::get('octobro.oauth2::lang.auth.forgot_email'),
             ];
         });
         
