@@ -22,7 +22,7 @@ class Me extends ApiController
         /**
          * Extensibility
          */
-        Event::fire('octobro.oauth2.beforeUpdate', [$this->data]);
+        Event::fire('octobro.oauth2.beforeUpdate', [$this->getUser(), $this->data]);
 
         $this->getUser()->fill($this->data);
 
