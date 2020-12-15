@@ -8,6 +8,7 @@ use Auth as AuthBase;
 use ValidationException;
 use Event;
 use Mail;
+use Lang;
 use Octobro\API\Classes\ApiController;
 
 class Auth extends ApiController
@@ -24,7 +25,7 @@ class Auth extends ApiController
 
             return $this->respondWithArray((Authorizer::issueAccessToken()));
         } catch (Exception $e) {
-            return $this->errorWrongArgs($e->getMessage());
+            return $this->errorWrongArgs($this->getInvalidCredentialMessage($e->getMessage()));
         }
     }
 
@@ -98,7 +99,7 @@ class Auth extends ApiController
             $user = \RainLab\User\Models\User::findByEmail($email);
 
             if (!$user || $user->is_guest) {
-                throw new \ApplicationException(\Lang::get('rainlab.user::lang.account.invalid_user'));
+                throw new \ApplicationException(Lang::get('rainlab.user::lang.account.invalid_user'));
             }
 
             $code = implode('!', [$user->id, $user->getResetPasswordCode()]);
@@ -125,9 +126,25 @@ class Auth extends ApiController
         return $this->respondWithItem($data, function(){
             return [
                 'code' => '200',
-                'message' => \Lang::get('octobro.oauth2::lang.auth.forgot_email'),
+                'message' => Lang::get('octobro.oauth2::lang.auth.forgot_email'),
             ];
         });
         
+    }
+
+    protected function getInvalidCredentialMessage($throw_message)
+    {
+        if (strrpos($throw_message,'authentication failed') !== false) {
+            $code_lang = 'octobro.oauth2::lang.auth.client_authentication_failed';
+            $message   = Lang::get($code_lang);
+
+            if($message == $code_lang){
+                return $throw_message;
+            }
+
+            return $message;
+        } else {
+            return $throw_message;
+        }
     }
 }
