@@ -62,12 +62,12 @@ class Auth extends ApiController
            // Register, no need activation
            $user = AuthBase::register($data, true);
 
+           Db::commit();
+
            /**
             * Extensibility
             */
            Event::fire('octobro.oauth2.register', [$user, $data]);
-
-           Db::commit();
 
            return $this->respondWithArray(Authorizer::issueAccessToken());
 
