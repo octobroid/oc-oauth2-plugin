@@ -1,6 +1,6 @@
 <?php namespace Octobro\OAuth2\Storage;
 
-use Carbon\Carbon;
+use Carbon\Carbon, Cache;
 use League\OAuth2\Server\Entity\AccessTokenEntity;
 use League\OAuth2\Server\Entity\AuthCodeEntity;
 use League\OAuth2\Server\Entity\ScopeEntity;
@@ -43,11 +43,18 @@ class FluentSession extends AbstractFluentAdapter implements SessionInterface
      */
     public function getByAccessToken(AccessTokenEntity $accessToken)
     {
-        $result = $this->getConnection()->table('oauth_sessions')
+        $sessionId = $this->getCacheSessionId($accessToken->getId());
+
+        if($this->checkCacheSession($sessionId)){
+            $result = (object) $this->getCacheSession($sessionId);
+        }else{
+            $result = $this->getConnection()
+                ->table('oauth_sessions')
                 ->select('oauth_sessions.*')
                 ->join('oauth_access_tokens', 'oauth_sessions.id', '=', 'oauth_access_tokens.session_id')
                 ->where('oauth_access_tokens.id', $accessToken->getId())
                 ->first();
+        }
 
         if (is_null($result)) {
             return;
@@ -98,14 +105,22 @@ class FluentSession extends AbstractFluentAdapter implements SessionInterface
      */
     public function create($ownerType, $ownerId, $clientId, $clientRedirectUri = null)
     {
-        return $this->getConnection()->table('oauth_sessions')->insertGetId([
+        $credentials = [
             'client_id' => $clientId,
             'owner_type' => $ownerType,
             'owner_id' => $ownerId,
             'client_redirect_uri' => $clientRedirectUri,
             'created_at' => Carbon::now(),
             'updated_at' => Carbon::now(),
-        ]);
+        ];
+
+        $result = $this->getConnection()
+        ->table('oauth_sessions')
+        ->insertGetId($credentials);
+
+        $this->setCacheSession($result, $credentials);
+
+        return $result;
     }
 
     /**
@@ -148,5 +163,59 @@ class FluentSession extends AbstractFluentAdapter implements SessionInterface
         return (new SessionEntity($this->getServer()))
                ->setId($result->id)
                ->setOwner($result->owner_type, $result->owner_id);
+    }
+
+    /**
+     * Set cache session.
+     *
+     * @param $token
+     * @param $value
+     * @param $expireTime
+     *
+     * @return void
+     */
+    protected function setCacheSession($value, $credentials)
+    {
+        $cacheName = sprintf('session_%s', bin2hex($value));
+        Cache::put($cacheName, array_merge(['id' => $value], $credentials), 10080);
+    }
+
+    /**
+     * Get cache session.
+     *
+     * @param $value
+     *
+     * @return void
+     */
+    protected function getCacheSession($value)
+    {
+        $cacheName = sprintf('session_%s', bin2hex($value));
+        return Cache::get($cacheName);
+    }
+
+    /**
+     * Check cache session.
+     *
+     * @param $value
+     *
+     * @return void
+     */
+    protected function checkCacheSession($value)
+    {
+        $cacheName = sprintf('session_%s', bin2hex($value));
+        return Cache::has($cacheName);
+    }
+
+    /**
+     * Get cache session id.
+     *
+     * @param $token
+     *
+     * @return void
+     */
+    protected function getCacheSessionId($token)
+    {
+        $cacheName = sprintf('session_token_%s', $token);
+        return Cache::get($cacheName);
     }
 }

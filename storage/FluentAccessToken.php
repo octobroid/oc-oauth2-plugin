@@ -107,6 +107,7 @@ class FluentAccessToken extends AbstractFluentAdapter implements AccessTokenInte
         ->insert($credentials);
 
         $this->setCacheToken($token, $credentials, $expireTime);
+        $this->setCacheSessionToken($sessionId, $token);
 
         return (new AccessTokenEntity($this->getServer()))
                ->setId($token)
@@ -185,5 +186,18 @@ class FluentAccessToken extends AbstractFluentAdapter implements AccessTokenInte
     {
         $cacheName = sprintf('user_%s_%s_%s', ...array_reverse(str_split($token, 10)));
         return Cache::has($cacheName);
+    }
+
+    /**
+     * set cache session token.
+     *
+     * @param $token
+     *
+     * @return void
+     */
+    protected function setCacheSessionToken($sessionId, $token)
+    {
+        $cacheName = sprintf('session_token_%s', $token);
+        return Cache::put($cacheName, $sessionId, 10000);
     }
 }
