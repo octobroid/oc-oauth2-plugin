@@ -1,6 +1,6 @@
 <?php namespace Octobro\OAuth2\Storage;
 
-use Carbon\Carbon;
+use Carbon\Carbon, Cache;
 use League\OAuth2\Server\Entity\AccessTokenEntity;
 use League\OAuth2\Server\Entity\ScopeEntity;
 use League\OAuth2\Server\Storage\AccessTokenInterface;
@@ -19,9 +19,14 @@ class FluentAccessToken extends AbstractFluentAdapter implements AccessTokenInte
      */
     public function get($token)
     {
-        $result = $this->getConnection()->table('oauth_access_tokens')
-                ->where('oauth_access_tokens.id', $token)
-                ->first();
+        if($this->checkCacheToken($token)){
+            $result = (object) $this->getCacheToken($token);
+        }else{
+            $result = $this->getConnection()
+            ->table('oauth_access_tokens')
+            ->where('oauth_access_tokens.id', $token)
+            ->first();
+        }
 
         if (is_null($result)) {
             return;
@@ -89,13 +94,19 @@ class FluentAccessToken extends AbstractFluentAdapter implements AccessTokenInte
      */
     public function create($token, $expireTime, $sessionId)
     {
-        $this->getConnection()->table('oauth_access_tokens')->insert([
+        $credentials = [
             'id' => $token,
             'expire_time' => $expireTime,
             'session_id' => $sessionId,
             'created_at' => Carbon::now(),
             'updated_at' => Carbon::now(),
-        ]);
+        ];
+
+        $result = $this->getConnection()
+        ->table('oauth_access_tokens')
+        ->insert($credentials);
+
+        $this->setCacheToken($token, $credentials, $expireTime);
 
         return (new AccessTokenEntity($this->getServer()))
                ->setId($token)
@@ -132,5 +143,47 @@ class FluentAccessToken extends AbstractFluentAdapter implements AccessTokenInte
         $this->getConnection()->table('oauth_access_tokens')
         ->where('oauth_access_tokens.id', $token->getId())
         ->delete();
+    }
+
+
+    /**
+     * Set cache access token.
+     *
+     * @param $token
+     * @param $value
+     * @param $expireTime
+     *
+     * @return void
+     */
+    protected function setCacheToken($token, $credentials, $expireTime)
+    {
+        $cacheName   = sprintf('user_%s_%s_%s', ...array_reverse(str_split($token, 10)));
+        Cache::put($cacheName, $credentials, (int) round($expireTime / 60000));
+    }
+
+    /**
+     * Get cache access token.
+     *
+     * @param $token
+     *
+     * @return void
+     */
+    protected function getCacheToken($token)
+    {
+        $cacheName = sprintf('user_%s_%s_%s', ...array_reverse(str_split($token, 10)));
+        return Cache::get($cacheName);
+    }
+
+    /**
+     * Check cache access token.
+     *
+     * @param $token
+     *
+     * @return void
+     */
+    protected function checkCacheToken($token)
+    {
+        $cacheName = sprintf('user_%s_%s_%s', ...array_reverse(str_split($token, 10)));
+        return Cache::has($cacheName);
     }
 }
