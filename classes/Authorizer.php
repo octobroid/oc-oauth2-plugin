@@ -7,6 +7,7 @@ use League\OAuth2\Server\TokenType\TokenTypeInterface;
 use League\OAuth2\Server\Util\RedirectUri;
 use Octobro\OAuth2\Exceptions\NoActiveAccessTokenException;
 use Symfony\Component\HttpFoundation\Request;
+use Cache;
 
 /**
  * This is the authorizer class.
@@ -251,7 +252,13 @@ class Authorizer
      */
     public function getResourceOwnerId()
     {
-        return $this->getAccessToken()->getSession()->getOwnerId();
+        $cacheName = sprintf('owner_id_token_%s', request()->bearerToken());
+
+        if(Cache::has($cacheName)){
+            return Cache::get($cacheName);
+        }else{
+            return $this->getAccessToken()->getSession()->getOwnerId();
+        }
     }
 
     /**

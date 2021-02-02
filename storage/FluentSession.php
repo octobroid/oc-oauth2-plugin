@@ -56,6 +56,8 @@ class FluentSession extends AbstractFluentAdapter implements SessionInterface
                 ->first();
         }
 
+        $this->setCacheOwnerId($result->owner_id, $accessToken->getId());
+
         if (is_null($result)) {
             return;
         }
@@ -217,5 +219,11 @@ class FluentSession extends AbstractFluentAdapter implements SessionInterface
     {
         $cacheName = sprintf('session_token_%s', $token);
         return Cache::get($cacheName);
+    }
+
+    protected function setCacheOwnerId($value, $token)
+    {
+        $cacheName = sprintf('owner_id_token_%s', $token);
+        return Cache::put($cacheName, $value, 10080);
     }
 }
