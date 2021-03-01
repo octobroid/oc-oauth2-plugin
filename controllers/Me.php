@@ -9,35 +9,39 @@ class Me extends ApiController
 {
     public function show()
     {
+        $user = $this->getUser();
+
         /**
          * Extensibility
          */
-        Event::fire('octobro.oauth2.beforeShow', [$this->getUser(), $this->data]);
+        Event::fire('octobro.oauth2.beforeShow', [$user, $this->data]);
         
-        return $this->respondWithItem($this->getUser(), new UserTransformer);
+        return $this->respondWithItem($user, new UserTransformer);
     }
 
     public function update()
     {
+        $user = $this->getUser();
+
         /**
          * Extensibility
          */
-        Event::fire('octobro.oauth2.beforeUpdate', [$this->getUser(), $this->data]);
+        Event::fire('octobro.oauth2.beforeUpdate', [$user, $this->data]);
 
-        $this->getUser()->fill($this->data);
+        $user->fill($this->data);
 
         if ($this->input->has('avatar')) {
-            $this->getUser()->avatar = Base64::base64ToFile($this->data['avatar']);
+            $user->avatar = Base64::base64ToFile($this->data['avatar']);
         }
 
-        $this->getUser()->save();
+        $user->save();
 
         /**
          * Extensibility
          */
-        Event::fire('octobro.oauth2.update', [$this->getUser(), $this->data]);
+        Event::fire('octobro.oauth2.update', [$user, $this->data]);
 
-        return $this->respondWithItem($this->getUser(), new UserTransformer);
+        return $this->respondWithItem($user, new UserTransformer);
     }
 
 }
