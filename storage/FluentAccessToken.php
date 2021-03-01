@@ -198,6 +198,6 @@ class FluentAccessToken extends AbstractFluentAdapter implements AccessTokenInte
     protected function setCacheSessionToken($sessionId, $token)
     {
         $cacheName = sprintf('session_token_%s', $token);
-        return Cache::put($cacheName, $sessionId, 4320);
+        return Cache::put($cacheName, $sessionId, 10080);
     }
 }

@@ -179,7 +179,7 @@ class FluentSession extends AbstractFluentAdapter implements SessionInterface
     protected function setCacheSession($value, $credentials)
     {
         $cacheName = sprintf('session_%s', bin2hex($value));
-        Cache::put($cacheName, array_merge(['id' => $value], $credentials), 4320);
+        Cache::put($cacheName, array_merge(['id' => $value], $credentials), 10080);
     }
 
     /**
@@ -224,6 +224,6 @@ class FluentSession extends AbstractFluentAdapter implements SessionInterface
     protected function setCacheOwnerId($value, $token)
     {
         $cacheName = sprintf('owner_id_token_%s', $token);
-        return Cache::put($cacheName, $value, 4320);
+        return Cache::put($cacheName, $value, 10080);
     }
 }
