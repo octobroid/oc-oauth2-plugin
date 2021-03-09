@@ -255,10 +255,10 @@ class Authorizer
         $cacheName = sprintf('owner_id_token_%s', request()->bearerToken());
 
         if(Cache::has($cacheName)){
-            return Cache::get($cacheName);
-        }else{
-            return $this->getAccessToken()->getSession()->getOwnerId();
+            return Cache::get($cacheName) ?: $this->getAccessToken()->getSession()->getOwnerId();
         }
+
+        return $this->getAccessToken()->getSession()->getOwnerId();
     }
 
     /**
