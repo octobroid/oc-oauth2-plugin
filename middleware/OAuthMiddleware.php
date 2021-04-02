@@ -1,86 +1,40 @@
 <?php namespace Octobro\OAuth2\Middleware;
 
-use Closure;
-use League\OAuth2\Server\Exception\InvalidScopeException;
-use League\OAuth2\Server\Exception\AccessDeniedException;
-use League\OAuth2\Server\Exception\InvalidRequestException;
-use Octobro\API\Classes\ApiController;
-use Octobro\OAuth2\Classes\Authorizer;
+use Illuminate\Auth\RequestGuard;
+use Laravel\Passport\TokenRepository;
+use Laravel\Passport\ClientRepository;
+use Laravel\Passport\Guards\TokenGuard;
+use Octobro\OAuth2\Classes\ApiUserProvider;
+use Octobro\OAuth2\Classes\OAuth2ServerServiceProvider;
 
 /**
  * This is the oauth middleware class.
  */
 class OAuthMiddleware
 {
-    /**
-     * The Authorizer instance.
-     *
-     * @var \Octobro\OAuth2\Classes\Authorizer
-     */
-    protected $authorizer;
-
-    /**
-     * Whether or not to check the http headers only for an access token.
-     *
-     * @var bool
-     */
-    protected $httpHeadersOnly = false;
-
-    /**
-     * Create a new oauth middleware instance.
-     *
-     * @param \Octobro\OAuth2\Classes\Authorizer $authorizer
-     * @param bool $httpHeadersOnly
-     */
-    public function __construct(Authorizer $authorizer, $httpHeadersOnly = false)
+    public static function create()
     {
-        $this->authorizer = $authorizer;
-        $this->httpHeadersOnly = $httpHeadersOnly;
+        $serviceProvider = new OAuth2ServerServiceProvider(app());
+
+        $serviceProvider->register();
+        
+        return $serviceProvider->makeGuard(app()['config']['auth.guards']['api']);
     }
 
-    /**
-     * Handle an incoming request.
-     *
-     * @param \Illuminate\Http\Request $request
-     * @param \Closure $next
-     * @param string|null $scopesString
-     *
-     * @return mixed
-     */
-    public function handle($request, Closure $next, $scopesString = null)
+    public static function handle($request, $next)
     {
-        $scopes = [];
-
-        if (!is_null($scopesString)) {
-            $scopes = explode('+', $scopesString);
+        $guard = self::create();
+        if ($guard->user($request)) {
+            return $next($request);
+        } else {
+            return response()->json([
+                "error" => [
+                    "code" => "UNAUTHORIZED",
+                    "http_code" => 401,
+                    "message" => "The request is missing a required parameter, includes an invalid parameter value, includes a parameter more than once, or is otherwise malformed. Check the \"access token\" parameter."
+                ]
+            ], 401);
         }
-
-        $this->authorizer->setRequest($request);
-
-        try {
-            $this->authorizer->validateAccessToken($this->httpHeadersOnly);
-        }
-        catch (AccessDeniedException|InvalidRequestException|InvalidScopeException $e) {
-            $controller = new ApiController(new \League\Fractal\Manager);
-            return $controller->errorUnauthorized($e->getMessage());
-        }
-
-        $this->validateScopes($scopes);
-
-        return $next($request);
     }
 
-    /**
-     * Validate the scopes.
-     *
-     * @param $scopes
-     *
-     * @throws \League\OAuth2\Server\Exception\InvalidScopeException
-     */
-    public function validateScopes($scopes)
-    {
-        if (!empty($scopes) && !$this->authorizer->hasScope($scopes)) {
-            throw new InvalidScopeException(implode(',', $scopes));
-        }
-    }
 }

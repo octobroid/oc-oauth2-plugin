@@ -6,7 +6,13 @@
         'namespace' => 'Octobro\OAuth2\Controllers',
         'middleware' => 'cors'
         ], function() {
-            Route::post('auth/access_token', 'Auth@accessToken');
+            
+            // Legacy URL
+            Route::post('auth/access_token', [
+                'uses'       => '\Laravel\Passport\Http\Controllers\AccessTokenController@issueToken',
+                'middleware' => 'throttle',
+            ]);
+
             Route::post('auth/register', 'Auth@register');
             Route::post('auth/forgot', 'Auth@forgot');
 
