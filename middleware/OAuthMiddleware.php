@@ -1,10 +1,5 @@
 <?php namespace Octobro\OAuth2\Middleware;
 
-use Illuminate\Auth\RequestGuard;
-use Laravel\Passport\TokenRepository;
-use Laravel\Passport\ClientRepository;
-use Laravel\Passport\Guards\TokenGuard;
-use Octobro\OAuth2\Classes\ApiUserProvider;
 use Octobro\OAuth2\Classes\OAuth2ServerServiceProvider;
 
 /**
@@ -24,17 +19,26 @@ class OAuthMiddleware
     public static function handle($request, $next)
     {
         $guard = self::create();
-        if ($guard->user($request)) {
-            return $next($request);
-        } else {
-            return response()->json([
-                "error" => [
-                    "code" => "UNAUTHORIZED",
-                    "http_code" => 401,
-                    "message" => "The request is missing a required parameter, includes an invalid parameter value, includes a parameter more than once, or is otherwise malformed. Check the \"access token\" parameter."
-                ]
-            ], 401);
+
+        try {
+            if (!$guard->user($request)) {
+                return self::respondWithError('Invalid user credential.');
+            }
+        } catch (\League\OAuth2\Server\Exception\OAuthServerException $e) {
+            return self::respondWithError(array_get($e->getPayload(), 'error_description', 'Unauthorized'), $e->getHttpStatusCode());
         }
+
+        return $next($request);
     }
 
+    protected static function respondWithError($message, $httpCode = 401, $code = 'UNAUTHORIZED')
+    {
+        return response()->json([
+            "error" => [
+                "code"      => $code,
+                "http_code" => $httpCode,
+                "message"   => $message,
+            ]
+        ], $httpCode);
+    }
 }
