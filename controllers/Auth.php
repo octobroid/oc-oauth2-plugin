@@ -3,33 +3,27 @@
 use Db;
 use Validator;
 use Exception;
-use Authorizer;
 use Auth as AuthBase;
 use ValidationException;
 use Event;
 use Mail;
 use Lang;
+use League\Fractal\Manager;
+use League\OAuth2\Server\AuthorizationServer;
 use Octobro\API\Classes\ApiController;
+use Octobro\OAuth2\Transformers\UserTransformer;
+use Laminas\Diactoros\Response as Psr7Response;
 
 class Auth extends ApiController
 {
-    public function accessToken()
-    {
-        try {
-            /**
-            * Extensibility
-            */
-            Event::fire('octobro.oauth2.beforeAccessToken', [
-                $this->data
-            ]);
 
-            return $this->respondWithArray((Authorizer::issueAccessToken()));
-        } catch (Exception $e) {
-            return $this->errorWrongArgs($this->getInvalidCredentialMessage($e->getMessage()));
-        }
+    public function __construct(Manager $fractal, AuthorizationServer $server)
+    {
+        $this->server = $server;
+        parent::__construct($fractal);
     }
 
-    public function register()
+    public function register(\Psr\Http\Message\ServerRequestInterface $request)
     {
         try {
 
@@ -37,39 +31,48 @@ class Auth extends ApiController
            /*
             * Validate input
             */
-           $data = $this->data;
+            $data = $this->data;
 
-           if (!array_key_exists('password_confirmation', $data)) {
-               $data['password_confirmation'] = post('password');
-           }
+            if (!array_key_exists('password_confirmation', $data)) {
+                $data['password_confirmation'] = post('password');
+            }
 
-           $rules = [
-               'name'     => 'required',
-               'email'    => 'required|email|between:6,255',
-               'password' => 'required|between:4,255',
-           ];
+            $rules = [
+                'name'     => 'required',
+                'email'    => 'required|email|between:6,255',
+                'password' => 'required|between:4,255',
+            ];
 
-           /**
+            /**
             * Extensibility
             */
-           Event::fire('octobro.oauth2.beforeRegister', [$data]);
+            Event::fire('octobro.oauth2.beforeRegister', [$data]);
 
-           $validation = Validator::make($data, $rules);
-           if ($validation->fails()) {
-               throw new ValidationException($validation);
-           }
+            $validation = Validator::make($data, $rules);
+            if ($validation->fails()) {
+                throw new ValidationException($validation);
+            }
 
-           // Register, no need activation
-           $user = AuthBase::register($data, true);
+            // Register, no need activation
+            $user = AuthBase::register($data, true);
 
-           Db::commit();
+            Db::commit();
 
-           /**
+            /**
             * Extensibility
             */
-           Event::fire('octobro.oauth2.register', [$user, $data]);
+            Event::fire('octobro.oauth2.register', [$user, $data]);
 
-           return $this->respondWithArray(Authorizer::issueAccessToken());
+            if (post('client_id') && post('client_secret')) {
+                $request = $request->withParsedBody(array_merge($request->getParsedBody(), [
+                    'grant_type' => 'password',
+                    'username' => $user->email,
+                ]));
+
+                return $this->server->respondToAccessTokenRequest($request, new Psr7Response);
+            }
+
+           return $this->respondWithItem($user, new UserTransformer);
 
        } catch (Exception $e) {
            Db::rollBack();
