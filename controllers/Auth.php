@@ -23,6 +23,15 @@ class Auth extends ApiController
         parent::__construct($fractal);
     }
 
+    public function accessToken(\Psr\Http\Message\ServerRequestInterface $request)
+    {
+        try {
+            $this->server->respondToAccessTokenRequest($request, new Psr7Response);
+        } catch (Exception $e) {
+            return $this->errorWrongArgs($e->getMessage());
+        }
+    }
+
     public function register(\Psr\Http\Message\ServerRequestInterface $request)
     {
         try {

@@ -7,17 +7,13 @@
         'middleware' => 'cors'
         ], function() {
             
-            // Legacy URL
-            Route::post('auth/access_token', [
-                'uses'       => '\Laravel\Passport\Http\Controllers\AccessTokenController@issueToken',
-                'middleware' => 'throttle',
-            ]);
-
-            Route::post('auth/register', 'Auth@register');
-            Route::post('auth/forgot', 'Auth@forgot');
+            Route::group(['middleware' => 'throttle'], function() {    
+                Route::post('auth/access_token', 'Auth@accessToken');
+                Route::post('auth/register', 'Auth@register');
+                Route::post('auth/forgot', 'Auth@forgot');
+            });
 
             Route::group(['middleware' => 'oauth'], function() {
-                //
                 Route::get('me', 'Me@show');
                 Route::put('me', 'Me@update');
             });
