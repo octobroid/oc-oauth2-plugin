@@ -26,6 +26,8 @@ class OAuthMiddleware
             }
         } catch (\League\OAuth2\Server\Exception\OAuthServerException $e) {
             return self::respondWithError(array_get($e->getPayload(), 'error_description', 'Unauthorized'), $e->getHttpStatusCode());
+        } catch (\Exception $e) {
+            return self::respondWithError($e->getMessage());
         }
 
         return $next($request);
