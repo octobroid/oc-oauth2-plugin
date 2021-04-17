@@ -26,7 +26,7 @@ class Auth extends ApiController
     public function accessToken(\Psr\Http\Message\ServerRequestInterface $request)
     {
         try {
-            $this->server->respondToAccessTokenRequest($request, new Psr7Response);
+            return $this->server->respondToAccessTokenRequest($request, new Psr7Response);
         } catch (Exception $e) {
             return $this->errorWrongArgs($e->getMessage());
         }
