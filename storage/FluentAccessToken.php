@@ -158,7 +158,7 @@ class FluentAccessToken extends AbstractFluentAdapter implements AccessTokenInte
      */
     protected function setCacheToken($token, $credentials, $expireTime)
     {
-        $cacheName   = sprintf('user_%s_%s_%s', ...array_reverse(str_split($token, 10)));
+        $cacheName   = sprintf('user_%s', strrev($token));
         Cache::put($cacheName, $credentials, (int) round($expireTime / 60000));
     }
 
@@ -171,7 +171,7 @@ class FluentAccessToken extends AbstractFluentAdapter implements AccessTokenInte
      */
     protected function getCacheToken($token)
     {
-        $cacheName = sprintf('user_%s_%s_%s', ...array_reverse(str_split($token, 10)));
+        $cacheName = sprintf('user_%s', strrev($token));
         return Cache::get($cacheName);
     }
 
@@ -184,7 +184,7 @@ class FluentAccessToken extends AbstractFluentAdapter implements AccessTokenInte
      */
     protected function checkCacheToken($token)
     {
-        $cacheName = sprintf('user_%s_%s_%s', ...array_reverse(str_split($token, 10)));
+        $cacheName = sprintf('user_%s', strrev($token));
         return Cache::has($cacheName);
     }
 
