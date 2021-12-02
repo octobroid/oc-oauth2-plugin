@@ -1,4 +1,4 @@
-<?php namespace Octobro\OAuth2\Behaviors;
+<?php namespace Sv\OAuth2\Behaviors;
 
 use Laravel\Passport\HasApiTokens;
 use Illuminate\Container\Container;
@@ -7,7 +7,7 @@ use Laravel\Passport\PersonalAccessTokenFactory;
 class Tokenable extends \October\Rain\Extension\ExtensionBase
 {
     use HasApiTokens;
-    
+
     /**
      * @var \October\Rain\Database\Model Reference to the extended model.
      */

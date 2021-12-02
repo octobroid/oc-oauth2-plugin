@@ -1,4 +1,4 @@
-<?php namespace Octobro\OAuth2\Classes;
+<?php namespace Sv\OAuth2\Classes;
 
 use Auth;
 use Illuminate\Contracts\Auth\UserProvider;
@@ -58,7 +58,7 @@ class ApiUserProvider implements UserProvider
         Auth::login($user);
         return $user;
     }
-    
+
     /**
      * Validate a user against the given credentials.
      *

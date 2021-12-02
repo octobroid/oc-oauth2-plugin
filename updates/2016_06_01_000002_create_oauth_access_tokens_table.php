@@ -1,4 +1,4 @@
-<?php namespace Octobro\OAuth2\Updates;
+<?php namespace Sv\OAuth2\Updates;
 
 use Schema;
 use October\Rain\Database\Schema\Blueprint;

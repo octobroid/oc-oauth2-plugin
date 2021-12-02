@@ -1,6 +1,6 @@
-<?php namespace Octobro\OAuth2\Middleware;
+<?php namespace Sv\OAuth2\Middleware;
 
-use Octobro\OAuth2\Classes\OAuth2ServerServiceProvider;
+use Sv\OAuth2\Classes\OAuth2ServerServiceProvider;
 
 /**
  * This is the oauth middleware class.

@@ -1,7 +1,7 @@
-<?php namespace Octobro\OAuth2\Transformers;
+<?php namespace Sv\OAuth2\Transformers;
 
 use RainLab\User\Models\User;
-use Octobro\API\Classes\Transformer;
+use Sv\API\Classes\Transformer;
 
 class UserTransformer extends Transformer
 {

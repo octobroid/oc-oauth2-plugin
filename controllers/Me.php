@@ -1,9 +1,9 @@
-<?php namespace Octobro\OAuth2\Controllers;
+<?php namespace Sv\OAuth2\Controllers;
 
 use Event;
-use Octobro\API\Classes\Base64;
-use Octobro\API\Classes\ApiController;
-use Octobro\OAuth2\Transformers\UserTransformer;
+use Sv\API\Classes\Base64;
+use Sv\API\Classes\ApiController;
+use Sv\OAuth2\Transformers\UserTransformer;
 
 class Me extends ApiController
 {
@@ -14,8 +14,8 @@ class Me extends ApiController
         /**
          * Extensibility
          */
-        Event::fire('octobro.oauth2.beforeShow', [$user, $this->data]);
-        
+        Event::fire('sv.oauth2.beforeShow', [$user, $this->data]);
+
         return $this->respondWithItem($user, new UserTransformer);
     }
 
@@ -26,7 +26,7 @@ class Me extends ApiController
         /**
          * Extensibility
          */
-        Event::fire('octobro.oauth2.beforeUpdate', [$user, $this->data]);
+        Event::fire('sv.oauth2.beforeUpdate', [$user, $this->data]);
 
         $user->fill($this->data);
 
@@ -42,7 +42,7 @@ class Me extends ApiController
         /**
          * Extensibility
          */
-        Event::fire('octobro.oauth2.update', [$user, $this->data]);
+        Event::fire('sv.oauth2.update', [$user, $this->data]);
 
         return $this->respondWithItem($user, new UserTransformer);
     }

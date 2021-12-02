@@ -1,4 +1,4 @@
-<?php namespace Octobro\OAuth2\Classes;
+<?php namespace Sv\OAuth2\Classes;
 
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Laravel\Passport\Passport;

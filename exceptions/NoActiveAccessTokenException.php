@@ -1,4 +1,4 @@
-<?php namespace Octobro\OAuth2\Exceptions;
+<?php namespace Sv\OAuth2\Exceptions;
 
 use Exception;
 

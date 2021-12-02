@@ -9,8 +9,8 @@ It's a plugin for OctoberCMS for you that want to create an OAuth 2 API for your
 
 ## Installation
 
-1. [**Download API Framework plugin**](https://github.com/octobroid/oc-api-plugin/archive/master.zip) and put to plugins directory (`plugins/octobro/api`).
-1. [**Download**](https://github.com/octobroid/oc-oauth2-plugin/archive/master.zip) this plugin and put to plugins directory (`plugins/octobro/oauth2`).
+1. [**Download API Framework plugin**](https://github.com/octobroid/oc-api-plugin/archive/master.zip) and put to plugins directory (`plugins/sv/api`).
+1. [**Download**](https://github.com/octobroid/oc-oauth2-plugin/archive/master.zip) this plugin and put to plugins directory (`plugins/sv/oauth2`).
 2. Run `composer update` on your project root directory.
 3. Run `php artisan october:up`.
 
@@ -56,15 +56,15 @@ On your `routes.php` you can define the API route and adding the `oauth` middlew
 
 ```php
 Route::group(['middleware' => 'oauth'], function() {
-	
+
 	//
 	// Your protected resources should be here.
 	// This is example routes below
 	//
-	
+
     Route::get('orders', 'Orders@index');
     Route::post('orders', 'Orders@store');
-	
+
 });
 ```
 
@@ -76,7 +76,7 @@ On your `Orders.php` file, you can check the user and get the data like this.
 <?php namespace Foo\Bar\ApiControllers;
 
 use ApplicationException;
-use Octobro\API\Classes\ApiController;
+use Sv\API\Classes\ApiController;
 use Foo\Bar\Transformers\OrderTransformer;
 
 class Orders extends ApiController
@@ -85,10 +85,10 @@ class Orders extends ApiController
     {
         // Get the user data
         $user = $this->getUser();
-        
+
         if (!$user) {
             throw new ApplicationException('User not found.');
-        }      
+        }
 
         return $this->respondwithCollection($user->orders, new OrderTransformer);
     }
@@ -120,10 +120,10 @@ UserTransformer::extend(function($transformer) {
     $transformer->addField('avatar', function($user) use ($transformer) {
         return $transformer->image($user->avatar);
     });
-    
+
     // Add field based on object attribute
     $transformer->addField('is_banned');
-    
+
     // Wanna add more fields based on attributes?
     // You can put it all together
     $transformer->addFields(['updated_at', 'verified_at']);
@@ -142,7 +142,7 @@ UserTransformer::extend(function($transformer) {
     $transformer->addInclude('orders', function($user) use ($transfomer) {
         return $transformer->collection($user->orders, new OrderTransformer);
     });
-    
+
 });
 ```
 

@@ -1,4 +1,4 @@
-<?php namespace Octobro\OAuth2\Controllers;
+<?php namespace Sv\OAuth2\Controllers;
 
 use Db;
 use Validator;
@@ -10,8 +10,8 @@ use Mail;
 use Lang;
 use League\Fractal\Manager;
 use League\OAuth2\Server\AuthorizationServer;
-use Octobro\API\Classes\ApiController;
-use Octobro\OAuth2\Transformers\UserTransformer;
+use Sv\API\Classes\ApiController;
+use Sv\OAuth2\Transformers\UserTransformer;
 use Laminas\Diactoros\Response as Psr7Response;
 
 class Auth extends ApiController
@@ -55,7 +55,7 @@ class Auth extends ApiController
             /**
             * Extensibility
             */
-            Event::fire('octobro.oauth2.beforeRegister', [$data]);
+            Event::fire('sv.oauth2.beforeRegister', [$data]);
 
             $validation = Validator::make($data, $rules);
             if ($validation->fails()) {
@@ -70,7 +70,7 @@ class Auth extends ApiController
             /**
             * Extensibility
             */
-            Event::fire('octobro.oauth2.register', [$user, $data]);
+            Event::fire('sv.oauth2.register', [$user, $data]);
 
             if (post('client_id') && post('client_secret')) {
                 $request = $request->withParsedBody(array_merge($request->getParsedBody(), [
@@ -132,22 +132,22 @@ class Auth extends ApiController
                 $message->to($user->email, $user->full_name);
             });
         } catch (\ApplicationException $th) {
-            
+
         }
-        
+
         return $this->respondWithItem($data, function(){
             return [
                 'code' => '200',
-                'message' => Lang::get('octobro.oauth2::lang.auth.forgot_email'),
+                'message' => Lang::get('sv.oauth2::lang.auth.forgot_email'),
             ];
         });
-        
+
     }
 
     protected function getInvalidCredentialMessage($throw_message)
     {
         if (strrpos($throw_message,'authentication failed') !== false) {
-            $code_lang = 'octobro.oauth2::lang.auth.client_authentication_failed';
+            $code_lang = 'sv.oauth2::lang.auth.client_authentication_failed';
             $message   = Lang::get($code_lang);
 
             if($message == $code_lang){
