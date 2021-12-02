@@ -12,8 +12,8 @@ class OAuthMiddleware
         $serviceProvider = new OAuth2ServerServiceProvider(app());
 
         $serviceProvider->register();
-        
-        return $serviceProvider->makeGuard(app()['config']['auth.guards']['api']);
+
+        return $serviceProvider->makeGuard(app()['config']['auth.guards']['api_user']);
     }
 
     public static function handle($request, $next)
