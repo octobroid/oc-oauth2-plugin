@@ -1,5 +1,5 @@
 {
-    "name": "octobro/api",
+    "name": "octobro/oauth2-plugin",
     "description": "OAuth 2 API Plugin for OctoberCMS.",
     "type": "october-plugin",
     "keywords": ["october", "api"],
