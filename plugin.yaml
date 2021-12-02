@@ -1,6 +1,6 @@
 plugin:
-    name: 'sv.oauth::lang.plugin.name'
-    description: 'sv.oauth::lang.plugin.description'
+    name: 'sv.oauth2::lang.plugin.name'
+    description: 'sv.oauth2::lang.plugin.description'
     author: Sv
     icon: oc-icon-code
     homepage: ''
