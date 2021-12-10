@@ -36,9 +36,11 @@ class OAuth2ServerServiceProvider extends ServiceProvider
     public function makeGuard(array $config)
     {
         return new RequestGuard(function ($request) use ($config) {
+            $name = $config['provider'];
+            $className = 'Sv\OAuth2\Classes\Api' . ucfirst($name) . 'Provider';
             return (new TokenGuard(
                 $this->app->make(ResourceServer::class),
-                new PassportUserProvider(new ApiUserProvider, 'users'),
+                new PassportUserProvider(new $className, $name),
                 $this->app->make(TokenRepository::class),
                 $this->app->make(ClientRepository::class),
                 $this->app->make('encrypter')

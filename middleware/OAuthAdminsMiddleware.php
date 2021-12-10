@@ -5,7 +5,7 @@ use Sv\OAuth2\Classes\OAuth2ServerServiceProvider;
 /**
  * This is the oauth middleware class.
  */
-class OAuthMiddleware
+class OAuthAdminsMiddleware
 {
     public static function create()
     {
@@ -13,7 +13,7 @@ class OAuthMiddleware
 
         $serviceProvider->register();
 
-        return $serviceProvider->makeGuard(app()['config']['auth.guards']['api_user']);
+        return $serviceProvider->makeGuard(app()['config']['auth.guards']['api_admins']);
     }
 
     public static function handle($request, $next)

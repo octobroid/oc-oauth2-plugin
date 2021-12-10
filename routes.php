@@ -10,7 +10,7 @@
             Route::post('auth/register', 'Auth@register');
             Route::post('auth/forgot', 'Auth@forgot');
 
-            Route::group(['middleware' => 'oauth'], function() {
+            Route::group(['middleware' => 'oauth-users'], function() {
                 Route::get('me', 'Me@show');
                 Route::put('me', 'Me@update');
             });
