@@ -14,6 +14,9 @@ use Sv\API\Classes\ApiController;
 use Sv\OAuth2\Transformers\UserTransformer;
 use Laminas\Diactoros\Response as Psr7Response;
 
+/**
+ * @group OAuth2
+ */
 class Auth extends ApiController
 {
 
@@ -23,6 +26,13 @@ class Auth extends ApiController
         parent::__construct($fractal);
     }
 
+    /**
+     * @bodyParam client_id string required It's a key for an app.
+     * @bodyParam client_secret string Secret key for selected app.
+     * @bodyParam grant_type string required Authentication method. Example: password
+     * @bodyParam username string required Username/email from user. Example: user01@example.com
+     * @bodyParam password string required Password from user. Example: 12345678
+     */
     public function accessToken(\Psr\Http\Message\ServerRequestInterface $request)
     {
         try {

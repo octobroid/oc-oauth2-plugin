@@ -5,6 +5,10 @@ use Sv\API\Classes\Base64;
 use Sv\API\Classes\ApiController;
 use Sv\OAuth2\Transformers\UserTransformer;
 
+/**
+ * @group OAuth2
+ * @authenticated
+ */
 class Me extends ApiController
 {
     public function show()
