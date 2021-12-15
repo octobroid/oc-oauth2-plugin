@@ -27,10 +27,10 @@ class Auth extends ApiController
     }
 
     /**
-     * @bodyParam client_id string required It's a key for an app.
-     * @bodyParam client_secret string Secret key for selected app.
+     * @bodyParam client_id string required It's a key for an app. Example: 951de443-28fd-4703-8608-d2152a13dc84
+     * @bodyParam client_secret string Secret key for selected app. No-example
      * @bodyParam grant_type string required Authentication method. Example: password
-     * @bodyParam username string required Username/email from user. Example: user01@example.com
+     * @bodyParam username string required Username/email from user. Example: user@example.com
      * @bodyParam password string required Password from user. Example: 12345678
      */
     public function accessToken(\Psr\Http\Message\ServerRequestInterface $request)
