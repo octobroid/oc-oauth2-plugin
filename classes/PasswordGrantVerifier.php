@@ -1,6 +1,6 @@
 <?php namespace Octobro\OAuth2\Classes;
 
-use Auth, Lang;
+use Auth, Event, Lang;
 use October\Rain\Auth\AuthException;
 
 class PasswordGrantVerifier
@@ -14,6 +14,7 @@ class PasswordGrantVerifier
 
         try {
             if ($user = Auth::authenticate($credentials)) {
+                Event::fire('octobro.oauth2.password_verify', [$user]);
                 return $user->id;
             }
         } catch (AuthException $th) {
