@@ -6,7 +6,7 @@ use Sv\API\Classes\ApiController;
 use Sv\OAuth2\Transformers\UserTransformer;
 
 /**
- * @group OAuth2
+ * @group OAUTH2
  * @authenticated
  */
 class Me extends ApiController

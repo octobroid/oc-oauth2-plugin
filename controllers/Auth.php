@@ -15,7 +15,13 @@ use Sv\OAuth2\Transformers\UserTransformer;
 use Laminas\Diactoros\Response as Psr7Response;
 
 /**
- * @group OAuth2
+ * @group OAUTH2
+ *
+ * 此系統使用 OAuth2 作為帳號管理的基礎，更多的相關資訊請參考以下網頁。
+ *
+ * https://oauth2.thephpleague.com/
+ *
+ * https://laravel.com/docs/6.x/passport
  */
 class Auth extends ApiController
 {
