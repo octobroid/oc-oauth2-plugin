@@ -11,6 +11,11 @@ use Sv\OAuth2\Transformers\UserTransformer;
  */
 class Me extends ApiController
 {
+    /**
+     * @transformercollection Sv\OAuth2\Transformers\UserTransformer
+     * @transformerModel RainLab\User\Models\User
+     * @queryParam include Related data that can be included. Available values are groups, clusters, notifications. Example: clusters
+     */
     public function show()
     {
         $user = $this->getUser();

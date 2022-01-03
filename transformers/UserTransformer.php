@@ -1,14 +1,15 @@
 <?php namespace Sv\OAuth2\Transformers;
 
-use Initbiz\CumulusCore\Models\Cluster;
 use RainLab\User\Models\User;
 use Sv\API\Classes\Transformer;
+use Initbiz\CumulusCore\Models\Cluster;
 
 class UserTransformer extends Transformer
 {
     public $availableIncludes = [
         'groups',
         'clusters',
+        'notifications',
     ];
 
     public function data(User $user)
@@ -32,5 +33,10 @@ class UserTransformer extends Transformer
     public function includeClusters(User $user)
     {
         return $this->collection($user->clusters()->get(), new ClusterTransformer);
+    }
+
+    public function includeNotifications(User $user)
+    {
+        return $this->collection($user->notifications, new NotificationTransformer);
     }
 }
