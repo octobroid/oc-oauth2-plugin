@@ -13,6 +13,7 @@ use League\OAuth2\Server\AuthorizationServer;
 use Octobro\API\Classes\ApiController;
 use Octobro\OAuth2\Transformers\UserTransformer;
 use Laminas\Diactoros\Response as Psr7Response;
+use RainLab\User\Models\Settings as UserSettings;
 
 class Auth extends ApiController
 {
@@ -62,8 +63,20 @@ class Auth extends ApiController
                 throw new ValidationException($validation);
             }
 
-            // Register, no need activation
-            $user = AuthBase::register($data, true);
+            
+            // Register
+            $requireActivation = UserSettings::get('require_activation', true);
+            $automaticActivation = UserSettings::get('activate_mode') == UserSettings::ACTIVATE_AUTO;
+            $userActivation = UserSettings::get('activate_mode') == UserSettings::ACTIVATE_USER;
+
+            $user = AuthBase::register($data, $automaticActivation);
+
+            /*
+             * Activation is by the user, send the email
+             */
+            if ($userActivation) {
+                $this->sendActivationEmail($user);
+            }            
 
             Db::commit();
 
@@ -72,13 +85,18 @@ class Auth extends ApiController
             */
             Event::fire('octobro.oauth2.register', [$user, $data]);
 
-            if (post('client_id') && post('client_secret')) {
-                $request = $request->withParsedBody(array_merge($request->getParsedBody(), [
-                    'grant_type' => 'password',
-                    'username' => $user->email,
-                ]));
-
-                return $this->server->respondToAccessTokenRequest($request, new Psr7Response);
+            /*
+             * Automatically activated or not required, log the user in
+             */
+            if ($automaticActivation || !$requireActivation) {
+                if (post('client_id') && post('client_secret')) {
+                    $request = $request->withParsedBody(array_merge($request->getParsedBody(), [
+                        'grant_type' => 'password',
+                        'username' => $user->email,
+                    ]));
+    
+                    return $this->server->respondToAccessTokenRequest($request, new Psr7Response);
+                }
             }
 
            return $this->respondWithItem($user, new UserTransformer);
@@ -142,6 +160,41 @@ class Auth extends ApiController
             ];
         });
         
+    }
+
+    /**
+     * Sends the activation email to a user
+     * @param  User $user
+     * @return void
+     */
+    protected function sendActivationEmail($user)
+    {        
+        $code = implode('!', [$user->id, $user->getActivationCode()]);
+
+        $link = $this->makeActivationUrl($code);
+
+        $data = [
+            'name' => $user->name,
+            'link' => $link,
+            'code' => $code
+        ];
+
+        Mail::send('rainlab.user::mail.activate', $data, function($message) use ($user) {
+            $message->to($user->email, $user->name);
+        });
+    }
+
+    /**
+     * Returns a link used to activate the user account.
+     * @return string
+     */
+    protected function makeActivationUrl($code)
+    {
+        if (env('APP_URL')) {
+            return env('APP_URL').'/activate?activate='.$code;
+        } else {
+            return url()->current().'/activate?activate='.$code;
+        }
     }
 
     protected function getInvalidCredentialMessage($throw_message)
