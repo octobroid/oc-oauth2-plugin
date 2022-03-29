@@ -1,18 +1,25 @@
 <?php namespace Octobro\OAuth2\Controllers;
 
 use Db;
+use Request;
 use Validator;
 use Exception;
 use Auth as AuthBase;
 use ValidationException;
+use ApplicationException;
 use Event;
 use Mail;
 use Lang;
 use League\Fractal\Manager;
 use League\OAuth2\Server\AuthorizationServer;
 use Octobro\API\Classes\ApiController;
+
+use Octobro\Oauth2\Classes\AuthServiceProvider;
 use Octobro\OAuth2\Transformers\UserTransformer;
+
 use Laminas\Diactoros\Response as Psr7Response;
+
+use RainLab\User\Models\User as UserModel;
 use RainLab\User\Models\Settings as UserSettings;
 
 class Auth extends ApiController
@@ -37,7 +44,16 @@ class Auth extends ApiController
     {
         try {
 
-           Db::beginTransaction();
+            Db::beginTransaction();
+
+            if (!$this->canRegister()) {
+                throw new ApplicationException(Lang::get(/*Registrations are currently disabled.*/'rainlab.user::lang.account.registration_disabled'));
+            }
+
+            if ($this->isRegisterThrottled()) {
+                throw new ApplicationException(Lang::get(/*Registration is throttled. Please try again later.*/'rainlab.user::lang.account.registration_throttled'));
+            }
+            
            /*
             * Validate input
             */
@@ -47,11 +63,11 @@ class Auth extends ApiController
                 $data['password_confirmation'] = post('password');
             }
 
-            $rules = [
-                'name'     => 'required',
-                'email'    => 'required|email|between:6,255',
-                'password' => 'required|between:4,255',
-            ];
+            $rules = (new UserModel)->rules;
+
+            if ($this->loginAttribute() !== UserSettings::LOGIN_USERNAME) {
+                unset($rules['username']);
+            }
 
             /**
             * Extensibility
@@ -63,12 +79,18 @@ class Auth extends ApiController
                 throw new ValidationException($validation);
             }
 
+            /*
+             * Record IP address
+             */
+            if ($ipAddress = Request::ip()) {
+                $data['created_ip_address'] = $data['last_ip_address'] = $ipAddress;
+            }
             
             // Register
             $requireActivation = UserSettings::get('require_activation', true);
             $automaticActivation = UserSettings::get('activate_mode') == UserSettings::ACTIVATE_AUTO;
             $userActivation = UserSettings::get('activate_mode') == UserSettings::ACTIVATE_USER;
-
+            
             $user = AuthBase::register($data, $automaticActivation);
 
             /*
@@ -76,30 +98,37 @@ class Auth extends ApiController
              */
             if ($userActivation) {
                 $this->sendActivationEmail($user);
-            }            
-
-            Db::commit();
+            }
 
             /**
             * Extensibility
             */
             Event::fire('octobro.oauth2.register', [$user, $data]);
 
+            Db::commit();
+
             /*
              * Automatically activated or not required, log the user in
              */
             if ($automaticActivation || !$requireActivation) {
                 if (post('client_id') && post('client_secret')) {
-                    $request = $request->withParsedBody(array_merge($request->getParsedBody(), [
-                        'grant_type' => 'password',
-                        'username' => $user->email,
-                    ]));
+                    if (UserSettings::LOGIN_USERNAME) {
+                        $request = $request->withParsedBody(array_merge($request->getParsedBody(), [
+                            'grant_type' => 'password',
+                            'login' => $user->username,
+                        ]));
+                    } else {
+                        $request = $request->withParsedBody(array_merge($request->getParsedBody(), [
+                            'grant_type' => 'password',
+                            'login' => $user->email,
+                        ]));
+                    }
     
                     return $this->server->respondToAccessTokenRequest($request, new Psr7Response);
                 }
             }
-
-           return $this->respondWithItem($user, new UserTransformer);
+            
+            return $this->respondWithItem($user, new UserTransformer);
 
        } catch (Exception $e) {
            Db::rollBack();
@@ -211,5 +240,34 @@ class Auth extends ApiController
         } else {
             return $throw_message;
         }
+    }
+
+    /**
+     * Flag for allowing registration, pulled from UserSettings
+     */
+    public function canRegister()
+    {
+        return UserSettings::get('allow_registration', true);
+    }
+
+    /**
+     * Returns the login model attribute.
+     */
+    public function loginAttribute()
+    {
+        return UserSettings::get('login_attribute', UserSettings::LOGIN_EMAIL);
+    }
+
+    /**
+     * Returns true if user is throttled.
+     * @return bool
+     */
+    protected function isRegisterThrottled()
+    {
+        if (!UserSettings::get('use_register_throttle', false)) {
+            return false;
+        }
+
+        return UserModel::isRegisterThrottled(Request::ip());
     }
 }

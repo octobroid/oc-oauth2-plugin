@@ -1,17 +1,26 @@
 <?php namespace Octobro\OAuth2\Classes;
 
-use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Laravel\Passport\Passport;
 use Illuminate\Auth\RequestGuard;
 use Laravel\Passport\TokenRepository;
 use Laravel\Passport\ClientRepository;
 use Laravel\Passport\Guards\TokenGuard;
 use Laravel\Passport\PassportUserProvider;
-use League\OAuth2\Server\ResourceServer;
+use Laravel\Passport\Bridge\RefreshTokenRepository;
+use Illuminate\Contracts\Container\Container as Application;
+use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 
+use League\OAuth2\Server\ResourceServer;
+use League\OAuth2\Server\AuthorizationServer;
+use Octobro\Oauth2\Classes\PasswordGrant;
 
 class OAuth2ServerServiceProvider extends ServiceProvider
 {
+    /**
+     * @var GrantTypeInterface[]
+     */
+    protected $enabledGrantTypes = [];
+
     /**
      * Register any authentication / authorization services.
      *
@@ -19,12 +28,34 @@ class OAuth2ServerServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        Passport::ignoreMigrations();
+        // Passport::ignoreMigrations();
         Passport::routes();
 
-        Passport::tokensExpireIn(now()->addDays(15));
-        Passport::refreshTokensExpireIn(now()->addDays(30));
-        Passport::personalAccessTokensExpireIn(now()->addMonths(6));
+        // Passport::tokensExpireIn(now()->addDays(15));
+        // Passport::refreshTokensExpireIn(now()->addDays(30));
+        // Passport::personalAccessTokensExpireIn(now()->addMonths(6));
+        
+        $config = $this->app['config']->get('passport');
+        if (array_key_exists('grant_types', $config)) {
+            foreach ($config['grant_types'] as $grantIdentifier => $grantParams) {
+                app(AuthorizationServer::class)->enableGrantType(
+                    $this->makeGrantType($grantParams['class']), Passport::tokensExpireIn()
+                );
+            }
+        }
+        
+        Passport::routes();
+    }
+
+    protected function makeGrantType($grantClass) 
+    {
+        $grant = new $grantClass(
+            $this->app->make(RefreshTokenRepository::class)
+        );
+
+        $grant->setRefreshTokenTTL(Passport::refreshTokensExpireIn());
+
+        return $grant;
     }
 
     /**
