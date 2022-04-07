@@ -28,12 +28,6 @@ class OAuth2ServerServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        // Passport::ignoreMigrations();
-        Passport::routes();
-
-        // Passport::tokensExpireIn(now()->addDays(15));
-        // Passport::refreshTokensExpireIn(now()->addDays(30));
-        // Passport::personalAccessTokensExpireIn(now()->addMonths(6));
         
         $config = $this->app['config']->get('passport');
         if (array_key_exists('grant_types', $config)) {
@@ -45,6 +39,10 @@ class OAuth2ServerServiceProvider extends ServiceProvider
         }
         
         Passport::routes();
+
+        Passport::tokensExpireIn(now()->addDays(15));
+        Passport::refreshTokensExpireIn(now()->addDays(30));
+        Passport::personalAccessTokensExpireIn(now()->addMonths(6));
     }
 
     protected function makeGrantType($grantClass) 
