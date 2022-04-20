@@ -167,7 +167,11 @@ class Auth extends ApiController
                 'code' => $code
             ]));
 
-            $link = \Cms\Classes\Page::url('mobile-view/reset-password') . $paramUrl;
+            if (array_get($data, 'url')) {
+                $link = array_get($data, 'url') . $paramUrl;
+            } else {
+                $link = \Cms\Classes\Page::url('mobile-view/reset-password') . $paramUrl;
+            }
 
             $mail_data = [
                 'name' => $user->name,
@@ -189,6 +193,65 @@ class Auth extends ApiController
             ];
         });
         
+    }
+
+    public function reset()
+    {
+        try {
+            Db::beginTransaction();
+
+            $data = $this->data;
+
+            $rules = [
+                'code'     => 'required',
+                'password' => 'required|between:' . UserModel::getMinPasswordLength() . ',255'
+            ];
+
+            $validation = Validator::make($data, $rules);
+            if ($validation->fails()) {
+                throw new ValidationException($validation);
+            }
+
+            $errorFields = ['code' => Lang::get(/*Invalid activation code supplied.*/'rainlab.user::lang.account.invalid_activation_code')];
+                
+            /*
+            * Break up the code parts
+            */
+            $parts = explode('!', array_get($data, 'code'));
+            if (count($parts) != 2) {
+                throw new ValidationException($errorFields);
+            }
+            
+            list($userId, $code) = $parts;
+
+            if (!strlen(trim($userId)) || !strlen(trim($code)) || !$code) {
+                throw new ValidationException($errorFields);
+            }
+    
+            if (!$user = AuthBase::findUserById($userId)) {
+                throw new ValidationException($errorFields);
+            }
+    
+            if (!$user->attemptResetPassword($code, array_get($data, 'password'))) {
+                throw new ValidationException($errorFields);
+            }
+            
+            // Check needed for compatibility with legacy systems
+            if (method_exists(\RainLab\User\Classes\AuthManager::class, 'clearThrottleForUserId')) {
+                AuthBase::clearThrottleForUserId($user->id);
+            }
+            Db::commit();
+
+            return $this->respondWithItem($data, function(){
+                return [
+                    'code' => '200',
+                    'message' => Lang::get('octobro.oauth2::lang.auth.reset_password'),
+                ];
+            });
+        } catch (Exception $e) {
+            Db::rollBack();
+            return $this->errorWrongArgs($e->getMessage());
+        }
     }
 
     /**

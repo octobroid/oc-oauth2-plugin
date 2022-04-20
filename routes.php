@@ -9,6 +9,7 @@
             Route::post('auth/access_token', 'Auth@accessToken');
             Route::post('auth/register', 'Auth@register');
             Route::post('auth/forgot', 'Auth@forgot');
+            Route::post('auth/reset', 'Auth@reset');
 
             Route::group(['middleware' => 'oauth'], function() {
                 Route::get('me', 'Me@show');
