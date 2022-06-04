@@ -1,7 +1,7 @@
 <?php namespace Octobro\OAuth2\Updates;
 
 use Schema;
-use October\Rain\Database\Schema\Blueprint;
+use Illuminate\Database\Schema\Blueprint;
 use October\Rain\Database\Updates\Migration;
 
 class CreateOauthAccessTokensTable extends Migration

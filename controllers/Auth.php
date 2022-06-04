@@ -13,12 +13,8 @@ use Lang;
 use League\Fractal\Manager;
 use League\OAuth2\Server\AuthorizationServer;
 use Octobro\API\Classes\ApiController;
-
-use Octobro\Oauth2\Classes\AuthServiceProvider;
 use Octobro\OAuth2\Transformers\UserTransformer;
-
-use Laminas\Diactoros\Response as Psr7Response;
-
+use Nyholm\Psr7\Response as Psr7Response;
 use RainLab\User\Models\User as UserModel;
 use RainLab\User\Models\Settings as UserSettings;
 
