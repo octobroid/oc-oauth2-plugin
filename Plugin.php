@@ -19,11 +19,13 @@ class Plugin extends PluginBase
         // Add oauth route middleware
         app('router')->aliasMiddleware('oauth' , \Octobro\OAuth2\Middleware\OAuthMiddleware::class);
 
-        User::extend(function ($model) {
-            if (!$model->isClassExtendedWith('Octobro.OAuth2.Behaviors.Tokenable')) {
-                $model->implement[] = 'Octobro.OAuth2.Behaviors.Tokenable';
-            }
-        });
+        if (class_exists(User::class)) {
+            User::extend(function ($model) {
+                if (!$model->isClassExtendedWith('Octobro.OAuth2.Behaviors.Tokenable')) {
+                    $model->implement[] = 'Octobro.OAuth2.Behaviors.Tokenable';
+                }
+            });
+        }
 
         ApiController::extend(function($controller) {
             $controller->addDynamicMethod('getUser', function() use ($controller) {
