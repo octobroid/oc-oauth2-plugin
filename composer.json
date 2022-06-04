@@ -4,7 +4,10 @@
     "type": "october-plugin",
     "keywords": ["october", "api"],
     "require": {
-        "php": ">=7.0.0",
-        "league/oauth2-server": ">=4.1"
+        "php": ">=7.2.9",
+        "laravel/passport": "^9.0"
+    },
+    "require-dev": {
+        "moontoast/math": "^1.1"
     }
 }

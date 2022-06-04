@@ -1,184 +1,77 @@
 <?php namespace Octobro\OAuth2\Classes;
 
+use Laravel\Passport\Passport;
+use Illuminate\Auth\RequestGuard;
+use Laravel\Passport\TokenRepository;
+use Laravel\Passport\ClientRepository;
+use Laravel\Passport\Guards\TokenGuard;
+use Laravel\Passport\PassportUserProvider;
+use Laravel\Passport\Bridge\RefreshTokenRepository;
 use Illuminate\Contracts\Container\Container as Application;
-use Illuminate\Foundation\Application as LaravelApplication;
-use Illuminate\Support\ServiceProvider;
-use League\OAuth2\Server\AuthorizationServer;
-use League\OAuth2\Server\ResourceServer;
-use League\OAuth2\Server\Storage\AccessTokenInterface;
-use League\OAuth2\Server\Storage\AuthCodeInterface;
-use League\OAuth2\Server\Storage\ClientInterface;
-use League\OAuth2\Server\Storage\RefreshTokenInterface;
-use League\OAuth2\Server\Storage\ScopeInterface;
-use League\OAuth2\Server\Storage\SessionInterface;
-use Octobro\OAuth2\Middleware\CheckAuthCodeRequestMiddleware;
-use Octobro\OAuth2\Middleware\OAuthClientOwnerMiddleware;
-use Octobro\OAuth2\Middleware\OAuthMiddleware;
-use Octobro\OAuth2\Middleware\OAuthUserOwnerMiddleware;
+use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 
-/**
- * This is the oauth2 server service provider class.
- *
- */
+use League\OAuth2\Server\ResourceServer;
+use League\OAuth2\Server\AuthorizationServer;
+use Octobro\Oauth2\Classes\PasswordGrant;
+
 class OAuth2ServerServiceProvider extends ServiceProvider
 {
     /**
-     * Boot the service provider.
+     * @var GrantTypeInterface[]
+     */
+    protected $enabledGrantTypes = [];
+
+    /**
+     * Register any authentication / authorization services.
      *
      * @return void
      */
     public function boot()
     {
-        $this->setupConfig($this->app);
-        $this->setupMigrations($this->app);
-    }
-
-    /**
-     * Setup the config.
-     *
-     * @param \Illuminate\Contracts\Container\Container $app
-     *
-     * @return void
-     */
-    protected function setupConfig(Application $app)
-    {
-        $source = realpath(__DIR__.'/../config/oauth2.php');
-
-        if ($app instanceof LaravelApplication && $app->runningInConsole()) {
-            $this->publishes([$source => config_path('oauth2.php')]);
-        }
-
-        $this->mergeConfigFrom($source, 'oauth2');
-    }
-
-    /**
-     * Setup the migrations.
-     *
-     * @param \Illuminate\Contracts\Container\Container $app
-     *
-     * @return void
-     */
-    protected function setupMigrations(Application $app)
-    {
-        $source = realpath(__DIR__.'/../database/migrations/');
-
-        if ($app instanceof LaravelApplication && $app->runningInConsole()) {
-            $this->publishes([$source => database_path('migrations')], 'migrations');
-        }
-    }
-
-    /**
-     * Register the service provider.
-     *
-     * @return void
-     */
-    public function register()
-    {
-        $this->registerAuthorizer($this->app);
-        $this->registerMiddlewareBindings($this->app);
-    }
-
-    /**
-     * Register the Authorization server with the IoC container.
-     *
-     * @param \Illuminate\Contracts\Container\Container $app
-     *
-     * @return void
-     */
-    public function registerAuthorizer(Application $app)
-    {
-        $app->singleton('oauth2-server.authorizer', function ($app) {
-            $config = $app['config']->get('oauth2');
-            $issuer = $app->make(AuthorizationServer::class)
-                ->setClientStorage($app->make(ClientInterface::class))
-                ->setSessionStorage($app->make(SessionInterface::class))
-                ->setAuthCodeStorage($app->make(AuthCodeInterface::class))
-                ->setAccessTokenStorage($app->make(AccessTokenInterface::class))
-                ->setRefreshTokenStorage($app->make(RefreshTokenInterface::class))
-                ->setScopeStorage($app->make(ScopeInterface::class))
-                ->requireScopeParam($config['scope_param'])
-                ->setDefaultScope($config['default_scope'])
-                ->requireStateParam($config['state_param'])
-                ->setScopeDelimiter($config['scope_delimiter'])
-                ->setAccessTokenTTL($config['access_token_ttl']);
-
-            // add the supported grant types to the authorization server
+        
+        $config = $this->app['config']->get('passport');
+        if (array_key_exists('grant_types', $config)) {
             foreach ($config['grant_types'] as $grantIdentifier => $grantParams) {
-                $grant = $app->make($grantParams['class']);
-                $grant->setAccessTokenTTL($grantParams['access_token_ttl']);
-
-                if (array_key_exists('callback', $grantParams)) {
-                    list($className, $method) = array_pad(explode('@', $grantParams['callback']), 2, 'verify');
-                    $verifier = $app->make($className);
-                    $grant->setVerifyCredentialsCallback([$verifier, $method]);
-                }
-
-                if (array_key_exists('auth_token_ttl', $grantParams)) {
-                    $grant->setAuthTokenTTL($grantParams['auth_token_ttl']);
-                }
-
-                if (array_key_exists('refresh_token_ttl', $grantParams)) {
-                    $grant->setRefreshTokenTTL($grantParams['refresh_token_ttl']);
-                }
-
-                if (array_key_exists('rotate_refresh_tokens', $grantParams)) {
-                    $grant->setRefreshTokenRotation($grantParams['rotate_refresh_tokens']);
-                }
-
-                $issuer->addGrantType($grant, $grantIdentifier);
+                app(AuthorizationServer::class)->enableGrantType(
+                    $this->makeGrantType($grantParams['class']), Passport::tokensExpireIn()
+                );
             }
+        }
+        
+        // Passport::routes();
 
-            $checker = $app->make(ResourceServer::class);
+        // Passport::tokensExpireIn(now()->addDays(15));
+        // Passport::refreshTokensExpireIn(now()->addDays(30));
+        // Passport::personalAccessTokensExpireIn(now()->addMonths(6));
+    }
 
-            $authorizer = new Authorizer($issuer, $checker);
-            $authorizer->setRequest($app['request']);
-            $authorizer->setTokenType($app->make($config['token_type']));
+    protected function makeGrantType($grantClass) 
+    {
+        $grant = new $grantClass(
+            $this->app->make(RefreshTokenRepository::class)
+        );
 
-            $app->refresh('request', $authorizer, 'setRequest');
+        $grant->setRefreshTokenTTL(Passport::refreshTokensExpireIn());
 
-            return $authorizer;
-        });
-
-        $app->alias('oauth2-server.authorizer', Authorizer::class);
+        return $grant;
     }
 
     /**
-     * Register the Middleware to the IoC container because
-     * some middleware need additional parameters.
+     * Make an instance of the token guard.
      *
-     * @param \Illuminate\Contracts\Container\Container $app
-     *
-     * @return void
+     * @param  array  $config
+     * @return \Illuminate\Auth\RequestGuard
      */
-    public function registerMiddlewareBindings(Application $app)
+    public function makeGuard(array $config)
     {
-        $app->singleton(CheckAuthCodeRequestMiddleware::class, function ($app) {
-            return new CheckAuthCodeRequestMiddleware($app['oauth2-server.authorizer']);
-        });
-
-        $app->singleton(OAuthMiddleware::class, function ($app) {
-            $httpHeadersOnly = $app['config']->get('oauth2.http_headers_only');
-
-            return new OAuthMiddleware($app['oauth2-server.authorizer'], $httpHeadersOnly);
-        });
-
-        $app->singleton(OAuthClientOwnerMiddleware::class, function ($app) {
-            return new OAuthClientOwnerMiddleware($app['oauth2-server.authorizer']);
-        });
-
-        $app->singleton(OAuthUserOwnerMiddleware::class, function ($app) {
-            return new OAuthUserOwnerMiddleware($app['oauth2-server.authorizer']);
-        });
-    }
-
-    /**
-     * Get the services provided by the provider.
-     *
-     * @return string[]
-     * @codeCoverageIgnore
-     */
-    public function provides()
-    {
-        return ['oauth2-server.authorizer'];
+        return new RequestGuard(function ($request) use ($config) {
+            return (new TokenGuard(
+                $this->app->make(ResourceServer::class),
+                new PassportUserProvider(new ApiUserProvider, 'users'),
+                $this->app->make(TokenRepository::class),
+                $this->app->make(ClientRepository::class),
+                $this->app->make('encrypter')
+            ))->user($request);
+        }, $this->app['request']);
     }
 }

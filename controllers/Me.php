@@ -30,8 +30,11 @@ class Me extends ApiController
 
         $user->fill($this->data);
 
-        if ($this->input->has('avatar') && isset($this->data['avatar'])) {
+        if ($this->input->has('avatar') && data_get($this->data, 'avatar') != null) {
             $user->avatar = Base64::base64ToFile($this->data['avatar']);
+        } else if (empty(data_get($this->data, 'avatar')) && $user->avatar) {
+            $user->avatar->delete();
+            $user->avatar = null;
         }
 
         $user->save();

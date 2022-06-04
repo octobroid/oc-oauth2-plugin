@@ -1,18 +1,9 @@
 1.0.1:
     - Plugin initialization.
-    - 2014_04_24_110151_create_oauth_scopes_table.php
-    - 2014_04_24_110304_create_oauth_grants_table.php
-    - 2014_04_24_110403_create_oauth_grant_scopes_table.php
-    - 2014_04_24_110459_create_oauth_clients_table.php
-    - 2014_04_24_110557_create_oauth_client_endpoints_table.php
-    - 2014_04_24_110705_create_oauth_client_scopes_table.php
-    - 2014_04_24_110817_create_oauth_client_grants_table.php
-    - 2014_04_24_111002_create_oauth_sessions_table.php
-    - 2014_04_24_111109_create_oauth_session_scopes_table.php
-    - 2014_04_24_111254_create_oauth_auth_codes_table.php
-    - 2014_04_24_111403_create_oauth_auth_code_scopes_table.php
-    - 2014_04_24_111518_create_oauth_access_tokens_table.php
-    - 2014_04_24_111657_create_oauth_access_token_scopes_table.php
-    - 2014_04_24_111810_create_oauth_refresh_tokens_table.php
-    - publish_config_file.php
-    - seed_oauth_clients_table.php
+2.0.0:
+    - '!!! Update the library using Laravel Passport to support October 1.1 and Laravel 6. Please remove all existing tables before update.'
+    - 2016_06_01_000001_create_oauth_auth_codes_table.php
+    - 2016_06_01_000002_create_oauth_access_tokens_table.php
+    - 2016_06_01_000003_create_oauth_refresh_tokens_table.php
+    - 2016_06_01_000004_create_oauth_clients_table.php
+    - 2016_06_01_000005_create_oauth_personal_access_clients_table.php

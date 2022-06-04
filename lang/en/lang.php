@@ -9,6 +9,7 @@
         'suspended'                    => 'Account has been suspended, please wait in a few moments.',
         'inactive'                     => 'Account is not active, please check your E-Mail to verify.',
         'forgot_email'                 => "We already email you password reset instructions, if you don't receive the email, try again and make sure your email address already registered.",
-        'client_authentication_failed' => 'Client authentication failed.'
+        'client_authentication_failed' => 'Client authentication failed.',
+        'reset_password'               => 'Account password has been changed successfully.'
     ]
 ];

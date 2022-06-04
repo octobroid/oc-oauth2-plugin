@@ -1,75 +1,134 @@
 <?php namespace Octobro\OAuth2\Controllers;
 
 use Db;
+use Request;
 use Validator;
 use Exception;
-use Authorizer;
 use Auth as AuthBase;
 use ValidationException;
+use ApplicationException;
 use Event;
 use Mail;
 use Lang;
+use League\Fractal\Manager;
+use League\OAuth2\Server\AuthorizationServer;
 use Octobro\API\Classes\ApiController;
+
+use Octobro\Oauth2\Classes\AuthServiceProvider;
+use Octobro\OAuth2\Transformers\UserTransformer;
+
+use Laminas\Diactoros\Response as Psr7Response;
+
+use RainLab\User\Models\User as UserModel;
+use RainLab\User\Models\Settings as UserSettings;
 
 class Auth extends ApiController
 {
-    public function accessToken()
+
+    public function __construct(Manager $fractal, AuthorizationServer $server)
+    {
+        $this->server = $server;
+        parent::__construct($fractal);
+    }
+
+    public function accessToken(\Psr\Http\Message\ServerRequestInterface $request)
     {
         try {
-            /**
-            * Extensibility
-            */
-            Event::fire('octobro.oauth2.beforeAccessToken', [
-                $this->data
-            ]);
-
-            return $this->respondWithArray((Authorizer::issueAccessToken()));
+            return $this->server->respondToAccessTokenRequest($request, new Psr7Response);
         } catch (Exception $e) {
-            return $this->errorWrongArgs($this->getInvalidCredentialMessage($e->getMessage()));
+            return $this->errorWrongArgs($e->getMessage());
         }
     }
 
-    public function register()
+    public function register(\Psr\Http\Message\ServerRequestInterface $request)
     {
         try {
 
-           Db::beginTransaction();
+            Db::beginTransaction();
+
+            if (!$this->canRegister()) {
+                throw new ApplicationException(Lang::get(/*Registrations are currently disabled.*/'rainlab.user::lang.account.registration_disabled'));
+            }
+
+            if ($this->isRegisterThrottled()) {
+                throw new ApplicationException(Lang::get(/*Registration is throttled. Please try again later.*/'rainlab.user::lang.account.registration_throttled'));
+            }
+            
            /*
             * Validate input
             */
-           $data = $this->data;
+            $data = $this->data;
 
-           if (!array_key_exists('password_confirmation', $data)) {
-               $data['password_confirmation'] = post('password');
-           }
+            if (!array_key_exists('password_confirmation', $data)) {
+                $data['password_confirmation'] = post('password');
+            }
 
-           $rules = [
-               'name'     => 'required',
-               'email'    => 'required|email|between:6,255',
-               'password' => 'required|between:4,255',
-           ];
+            $rules = (new UserModel)->rules;
 
-           /**
+            if ($this->loginAttribute() !== UserSettings::LOGIN_USERNAME) {
+                unset($rules['username']);
+            }
+
+            /**
             * Extensibility
             */
-           Event::fire('octobro.oauth2.beforeRegister', [$data]);
+            Event::fire('octobro.oauth2.beforeRegister', [$data]);
 
-           $validation = Validator::make($data, $rules);
-           if ($validation->fails()) {
-               throw new ValidationException($validation);
-           }
+            $validation = Validator::make($data, $rules);
+            if ($validation->fails()) {
+                throw new ValidationException($validation);
+            }
 
-           // Register, no need activation
-           $user = AuthBase::register($data, true);
+            /*
+             * Record IP address
+             */
+            if ($ipAddress = Request::ip()) {
+                $data['created_ip_address'] = $data['last_ip_address'] = $ipAddress;
+            }
+            
+            // Register
+            $requireActivation = UserSettings::get('require_activation', true);
+            $automaticActivation = UserSettings::get('activate_mode') == UserSettings::ACTIVATE_AUTO;
+            $userActivation = UserSettings::get('activate_mode') == UserSettings::ACTIVATE_USER;
+            
+            $user = AuthBase::register($data, $automaticActivation);
 
-           Db::commit();
+            /*
+             * Activation is by the user, send the email
+             */
+            if ($userActivation) {
+                $this->sendActivationEmail($user);
+            }
 
-           /**
+            /**
             * Extensibility
             */
-           Event::fire('octobro.oauth2.register', [$user, $data]);
+            Event::fire('octobro.oauth2.register', [$user, $data]);
 
-           return $this->respondWithArray(Authorizer::issueAccessToken());
+            Db::commit();
+
+            /*
+             * Automatically activated or not required, log the user in
+             */
+            if ($automaticActivation || !$requireActivation) {
+                if (post('client_id') && post('client_secret')) {
+                    if ($this->loginAttribute() == 'username') {
+                        $request = $request->withParsedBody(array_merge($request->getParsedBody(), [
+                            'grant_type' => 'password',
+                            'login' => $user->username,
+                        ]));
+                    } else {
+                        $request = $request->withParsedBody(array_merge($request->getParsedBody(), [
+                            'grant_type' => 'password',
+                            'login' => $user->email,
+                        ]));
+                    }
+    
+                    return $this->server->respondToAccessTokenRequest($request, new Psr7Response);
+                }
+            }
+            
+            return $this->respondWithItem($user, new UserTransformer);
 
        } catch (Exception $e) {
            Db::rollBack();
@@ -108,7 +167,11 @@ class Auth extends ApiController
                 'code' => $code
             ]));
 
-            $link = \Cms\Classes\Page::url('mobile-view/reset-password') . $paramUrl;
+            if (array_get($data, 'url')) {
+                $link = array_get($data, 'url') . $paramUrl;
+            } else {
+                $link = \Cms\Classes\Page::url('mobile-view/reset-password') . $paramUrl;
+            }
 
             $mail_data = [
                 'name' => $user->name,
@@ -132,6 +195,100 @@ class Auth extends ApiController
         
     }
 
+    public function reset()
+    {
+        try {
+            Db::beginTransaction();
+
+            $data = $this->data;
+
+            $rules = [
+                'code'     => 'required',
+                'password' => 'required|between:' . UserModel::getMinPasswordLength() . ',255'
+            ];
+
+            $validation = Validator::make($data, $rules);
+            if ($validation->fails()) {
+                throw new ValidationException($validation);
+            }
+
+            $errorFields = ['code' => Lang::get(/*Invalid activation code supplied.*/'rainlab.user::lang.account.invalid_activation_code')];
+                
+            /*
+            * Break up the code parts
+            */
+            $parts = explode('!', array_get($data, 'code'));
+            if (count($parts) != 2) {
+                throw new ValidationException($errorFields);
+            }
+            
+            list($userId, $code) = $parts;
+
+            if (!strlen(trim($userId)) || !strlen(trim($code)) || !$code) {
+                throw new ValidationException($errorFields);
+            }
+    
+            if (!$user = AuthBase::findUserById($userId)) {
+                throw new ValidationException($errorFields);
+            }
+    
+            if (!$user->attemptResetPassword($code, array_get($data, 'password'))) {
+                throw new ValidationException($errorFields);
+            }
+            
+            // Check needed for compatibility with legacy systems
+            if (method_exists(\RainLab\User\Classes\AuthManager::class, 'clearThrottleForUserId')) {
+                AuthBase::clearThrottleForUserId($user->id);
+            }
+            Db::commit();
+
+            return $this->respondWithItem($data, function(){
+                return [
+                    'code' => '200',
+                    'message' => Lang::get('octobro.oauth2::lang.auth.reset_password'),
+                ];
+            });
+        } catch (Exception $e) {
+            Db::rollBack();
+            return $this->errorWrongArgs($e->getMessage());
+        }
+    }
+
+    /**
+     * Sends the activation email to a user
+     * @param  User $user
+     * @return void
+     */
+    protected function sendActivationEmail($user)
+    {        
+        $code = implode('!', [$user->id, $user->getActivationCode()]);
+
+        $link = $this->makeActivationUrl($code);
+
+        $data = [
+            'name' => $user->name,
+            'link' => $link,
+            'code' => $code
+        ];
+
+        Mail::send('rainlab.user::mail.activate', $data, function($message) use ($user) {
+            $message->to($user->email, $user->name);
+        });
+    }
+
+    /**
+     * Returns a link used to activate the user account.
+     * @return string
+     */
+    protected function makeActivationUrl($code)
+    {
+        if (env('APP_URL')) {
+            return env('APP_URL').'/activate?activate='.$code;
+        } else {
+            return url()->current().'/activate?activate='.$code;
+        }
+    }
+
     protected function getInvalidCredentialMessage($throw_message)
     {
         if (strrpos($throw_message,'authentication failed') !== false) {
@@ -146,5 +303,34 @@ class Auth extends ApiController
         } else {
             return $throw_message;
         }
+    }
+
+    /**
+     * Flag for allowing registration, pulled from UserSettings
+     */
+    public function canRegister()
+    {
+        return UserSettings::get('allow_registration', true);
+    }
+
+    /**
+     * Returns the login model attribute.
+     */
+    public function loginAttribute()
+    {
+        return UserSettings::get('login_attribute', UserSettings::LOGIN_EMAIL);
+    }
+
+    /**
+     * Returns true if user is throttled.
+     * @return bool
+     */
+    protected function isRegisterThrottled()
+    {
+        if (!UserSettings::get('use_register_throttle', false)) {
+            return false;
+        }
+
+        return UserModel::isRegisterThrottled(Request::ip());
     }
 }
