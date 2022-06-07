@@ -8,4 +8,6 @@
     - 2016_06_01_000004_create_oauth_clients_table.php
     - 2016_06_01_000005_create_oauth_personal_access_clients_table.php
 3.0.0:
-    - Add compatibility to October CMS 3 and Laravel 9. 
+    - Add compatibility to October CMS 3 and Laravel 9.
+3.0.1:
+    - Add compability to other Grants
