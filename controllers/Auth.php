@@ -107,15 +107,15 @@ class Auth extends ApiController
              * Automatically activated or not required, log the user in
              */
             if ($automaticActivation || !$requireActivation) {
-                if (post('client_id') && post('client_secret') && post('grant_type') == 'password') {
+                if (post('client_id') && post('client_secret')) {
                     if ($this->loginAttribute() == 'username') {
                         $request = $request->withParsedBody(array_merge($request->getParsedBody(), [
-                            'grant_type' => 'password',
+                            'grant_type' => post('grant_type'),
                             'login' => $user->username,
                         ]));
                     } else {
                         $request = $request->withParsedBody(array_merge($request->getParsedBody(), [
-                            'grant_type' => 'password',
+                            'grant_type' => post('grant_type'),
                             'login' => $user->email,
                         ]));
                     }
