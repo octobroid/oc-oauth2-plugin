@@ -178,8 +178,8 @@ class Auth extends ApiController
             Mail::queue('rainlab.user::mail.restore', $mail_data, function($message) use ($user) {
                 $message->to($user->email, $user->full_name);
             });
-        } catch (\ApplicationException $th) {
-            
+        } catch (Exception $th) {
+            throw $th;
         }
         
         return $this->respondWithItem($data, function(){
