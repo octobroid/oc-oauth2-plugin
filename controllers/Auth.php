@@ -111,7 +111,7 @@ class Auth extends ApiController
                     if ($this->loginAttribute() == 'username') {
                         $request = $request->withParsedBody(array_merge($request->getParsedBody(), [
                             'grant_type' => post('grant_type'),
-                            'login' => $user->username,
+                            'login' => strval($user->username),
                         ]));
                     } else {
                         $request = $request->withParsedBody(array_merge($request->getParsedBody(), [
