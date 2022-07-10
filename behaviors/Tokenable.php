@@ -1,5 +1,6 @@
 <?php namespace Octobro\OAuth2\Behaviors;
 
+use Laravel\Passport\Passport;
 use Laravel\Passport\HasApiTokens;
 use Illuminate\Container\Container;
 use Laravel\Passport\PersonalAccessTokenFactory;
@@ -20,6 +21,15 @@ class Tokenable extends \October\Rain\Extension\ExtensionBase
     public function __construct($model)
     {
         $this->model = $model;
+        $this->model->hasMany['tokens'] = [
+            Passport::tokenModel(),
+            'key' => 'user_id',
+            'order' => 'created_at desc',
+        ];
+        $this->model->hasMany['clients'] = [
+            Passport::clientModel(),
+            'key' => 'user_id',
+        ];
     }
 
     /**
