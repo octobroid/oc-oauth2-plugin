@@ -16,7 +16,7 @@ class UserTransformer extends Transformer
             'name'       => $user->name,
             'username'   => $user->username,
             'email'      => $user->email,
-            'last_login' => date($user->last_login),
+            'last_login' => filled($user->last_login) ? date($user->last_login) : null,
             'avatar'     => $this->image($user->avatar),
             'created_at' => date($user->created_at),
         ];
