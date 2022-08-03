@@ -27,9 +27,14 @@ class OAuth2ServerServiceProvider extends ServiceProvider
      * @return void
      */
     public function boot()
-    {
-        
+    {   
         $config = $this->app['config']->get('passport');
+
+        Passport::routes();
+        if (array_get($config, 'load_key_from')) {
+            Passport::loadKeysFrom(array_get($config, 'load_key_from'));
+        }
+
         if (array_key_exists('grant_types', $config)) {
             foreach ($config['grant_types'] as $grantIdentifier => $grantParams) {
                 app(AuthorizationServer::class)->enableGrantType(
@@ -37,8 +42,6 @@ class OAuth2ServerServiceProvider extends ServiceProvider
                 );
             }
         }
-        
-        // Passport::routes();
 
         // Passport::tokensExpireIn(now()->addDays(15));
         // Passport::refreshTokensExpireIn(now()->addDays(30));
