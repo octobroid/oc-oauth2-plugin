@@ -101,8 +101,6 @@ class Auth extends ApiController
             */
             Event::fire('octobro.oauth2.register', [$user, $data]);
 
-            Db::commit();
-
             /*
              * Automatically activated or not required, log the user in
              */
@@ -124,6 +122,8 @@ class Auth extends ApiController
                 }
             }
             
+            Db::commit();
+
             return $this->respondWithItem($user, new UserTransformer);
 
        } catch (Exception $e) {
