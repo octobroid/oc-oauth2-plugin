@@ -14,5 +14,6 @@
             Route::group(['middleware' => 'oauth'], function() {
                 Route::get('me', 'Me@show');
                 Route::put('me', 'Me@update');
+                Route::delete('me', 'Me@destroy');
             });
     });

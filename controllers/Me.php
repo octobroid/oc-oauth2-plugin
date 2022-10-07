@@ -47,4 +47,24 @@ class Me extends ApiController
         return $this->respondWithItem($user, new UserTransformer);
     }
 
+    public function destroy()
+    {
+        $user = $this->getUser();
+
+        /**
+         * Extensibility
+         */
+        Event::fire('octobro.oauth2.beforeDelete', [$user]);
+
+        $user->clearPersistCode();
+        $user->delete();
+
+        /**
+         * Extensibility
+         */
+        Event::fire('octobro.oauth2.delete', [$user]);
+
+        return;
+    }
+
 }
