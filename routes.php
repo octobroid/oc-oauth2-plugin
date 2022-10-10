@@ -15,5 +15,6 @@
                 Route::get('me', 'Me@show');
                 Route::put('me', 'Me@update');
                 Route::delete('me', 'Me@destroy');
+                Route::delete('me/avatar', 'Me@destroyAvatar');
             });
     });

@@ -32,10 +32,11 @@ class Me extends ApiController
 
         if ($this->input->has('avatar') && data_get($this->data, 'avatar') != null) {
             $user->avatar = Base64::base64ToFile($this->data['avatar']);
-        } else if (empty(data_get($this->data, 'avatar')) && $user->avatar) {
-            $user->avatar->delete();
-            $user->avatar = null;
-        }
+        } 
+        // else if (empty(data_get($this->data, 'avatar')) && $user->avatar) {
+        //     $user->avatar->delete();
+        //     $user->avatar = null;
+        // }
 
         $user->save();
 
@@ -67,4 +68,16 @@ class Me extends ApiController
         return;
     }
 
+    public function destroyAvatar()
+    {
+        $user = $this->getUser();
+
+        if ($user->avatar) {
+            $user->avatar->delete();
+            $user->avatar = null;
+            $user->save();
+        }
+
+        return;
+    }
 }
