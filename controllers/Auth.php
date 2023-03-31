@@ -1,4 +1,6 @@
-<?php namespace Octobro\OAuth2\Controllers;
+<?php
+
+namespace Octobro\OAuth2\Controllers;
 
 use Db;
 use Validator;
@@ -17,13 +19,19 @@ class Auth extends ApiController
     {
         try {
             /**
-            * Extensibility
-            */
+             * Extensibility
+             */
             Event::fire('octobro.oauth2.beforeAccessToken', [
                 $this->data
             ]);
 
-            return $this->respondWithArray((Authorizer::issueAccessToken()));
+            $issuing_token = Authorizer::issueAccessToken();
+
+            Event::fire('octobro.oauth2.afterAccessToken', [
+                $this->data
+            ]);
+
+            return $this->respondWithArray($issuing_token);
         } catch (Exception $e) {
             return $this->errorWrongArgs($this->getInvalidCredentialMessage($e->getMessage()));
         }
@@ -33,48 +41,47 @@ class Auth extends ApiController
     {
         try {
 
-           Db::beginTransaction();
-           /*
+            Db::beginTransaction();
+            /*
             * Validate input
             */
-           $data = $this->data;
+            $data = $this->data;
 
-           if (!array_key_exists('password_confirmation', $data)) {
-               $data['password_confirmation'] = post('password');
-           }
+            if (!array_key_exists('password_confirmation', $data)) {
+                $data['password_confirmation'] = post('password');
+            }
 
-           $rules = [
-               'name'     => 'required',
-               'email'    => 'required|email|between:6,255',
-               'password' => 'required|between:4,255',
-           ];
+            $rules = [
+                'name'     => 'required',
+                'email'    => 'required|email|between:6,255',
+                'password' => 'required|between:4,255',
+            ];
 
-           /**
-            * Extensibility
-            */
-           Event::fire('octobro.oauth2.beforeRegister', [$data]);
+            /**
+             * Extensibility
+             */
+            Event::fire('octobro.oauth2.beforeRegister', [$data]);
 
-           $validation = Validator::make($data, $rules);
-           if ($validation->fails()) {
-               throw new ValidationException($validation);
-           }
+            $validation = Validator::make($data, $rules);
+            if ($validation->fails()) {
+                throw new ValidationException($validation);
+            }
 
-           // Register, no need activation
-           $user = AuthBase::register($data, true);
+            // Register, no need activation
+            $user = AuthBase::register($data, true);
 
-           Db::commit();
+            Db::commit();
 
-           /**
-            * Extensibility
-            */
-           Event::fire('octobro.oauth2.register', [$user, $data]);
+            /**
+             * Extensibility
+             */
+            Event::fire('octobro.oauth2.register', [$user, $data]);
 
-           return $this->respondWithArray(Authorizer::issueAccessToken());
-
-       } catch (Exception $e) {
-           Db::rollBack();
-           return $this->errorWrongArgs($e->getMessage());
-       }
+            return $this->respondWithArray(Authorizer::issueAccessToken());
+        } catch (Exception $e) {
+            Db::rollBack();
+            return $this->errorWrongArgs($e->getMessage());
+        }
     }
 
     public function forgot()
@@ -116,29 +123,27 @@ class Auth extends ApiController
                 'code' => $code
             ];
 
-            Mail::queue('rainlab.user::mail.restore', $mail_data, function($message) use ($user) {
+            Mail::queue('rainlab.user::mail.restore', $mail_data, function ($message) use ($user) {
                 $message->to($user->email, $user->full_name);
             });
         } catch (\ApplicationException $th) {
-            
         }
-        
-        return $this->respondWithItem($data, function(){
+
+        return $this->respondWithItem($data, function () {
             return [
                 'code' => '200',
                 'message' => Lang::get('octobro.oauth2::lang.auth.forgot_email'),
             ];
         });
-        
     }
 
     protected function getInvalidCredentialMessage($throw_message)
     {
-        if (strrpos($throw_message,'authentication failed') !== false) {
+        if (strrpos($throw_message, 'authentication failed') !== false) {
             $code_lang = 'octobro.oauth2::lang.auth.client_authentication_failed';
             $message   = Lang::get($code_lang);
 
-            if($message == $code_lang){
+            if ($message == $code_lang) {
                 return $throw_message;
             }
 
