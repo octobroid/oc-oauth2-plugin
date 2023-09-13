@@ -6,12 +6,12 @@
         'namespace' => 'Octobro\OAuth2\Controllers',
         ], function() {
             
-            if (!env('OCTOBRO_OAUTH2_CUSTOMLOGIN', false)) {
+            if (!env('OCTOBRO_OAUTH2_CUSTOMAUTH', false)) {
                 Route::post('auth/access_token', 'Auth@accessToken');
+                Route::post('auth/register', 'Auth@register');
+                Route::post('auth/forgot', 'Auth@forgot');
+                Route::post('auth/reset', 'Auth@reset');
             }
-            Route::post('auth/register', 'Auth@register');
-            Route::post('auth/forgot', 'Auth@forgot');
-            Route::post('auth/reset', 'Auth@reset');
 
             Route::group(['middleware' => 'oauth'], function() {
                 Route::get('me', 'Me@show');
